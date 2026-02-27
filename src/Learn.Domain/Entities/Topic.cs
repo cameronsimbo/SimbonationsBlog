@@ -11,6 +11,8 @@ public class Topic : CreatedEntity<Topic>
     public DifficultyLevel DifficultyLevel { get; set; }
     public bool IsPublished { get; set; }
     public int TotalUnits { get; set; }
+    public string? KeyConcepts { get; set; }
+    public string? GenerationGuidance { get; set; }
 
     public ICollection<Unit> Units { get; set; } = new List<Unit>();
 

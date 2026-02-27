@@ -1,4 +1,5 @@
 using Learn.Application.Common.Interfaces;
+using Learn.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,18 +8,33 @@ namespace Learn.Application.Exercises.GetByLesson;
 public class GetExercisesByLessonQueryHandler : IRequestHandler<GetExercisesByLessonQuery, List<ExerciseVm>>
 {
     private readonly ILearnDbContext _db;
+    private readonly ICurrentUser _currentUser;
 
-    public GetExercisesByLessonQueryHandler(ILearnDbContext db)
+    public GetExercisesByLessonQueryHandler(ILearnDbContext db, ICurrentUser currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<List<ExerciseVm>> Handle(GetExercisesByLessonQuery request, CancellationToken cancellationToken)
     {
-        List<ExerciseVm> exercises = await _db.Exercises
+        string? userId = _currentUser.UserId;
+
+        List<Exercise> exercises = await _db.Exercises
+            .Include(e => e.Votes)
             .Where(e => e.LessonId == request.LessonId)
+            .Where(e => (e.UpvoteCount - e.DownvoteCount) >= -3)
             .OrderBy(e => e.OrderIndex)
-            .Select(e => new ExerciseVm
+            .ThenByDescending(e => e.UpvoteCount - e.DownvoteCount)
+            .ToListAsync(cancellationToken);
+
+        List<ExerciseVm> result = exercises.Select(e =>
+        {
+            ExerciseVote? userVote = string.IsNullOrEmpty(userId)
+                ? null
+                : e.Votes.FirstOrDefault(v => v.UserId == userId);
+
+            return new ExerciseVm
             {
                 Id = e.Id,
                 OrderIndex = e.OrderIndex,
@@ -28,10 +44,14 @@ public class GetExercisesByLessonQueryHandler : IRequestHandler<GetExercisesByLe
                 Context = e.Context,
                 AudioUrl = e.AudioUrl,
                 Hints = e.Hints,
-                MaxScore = e.MaxScore
-            })
-            .ToListAsync(cancellationToken);
+                MaxScore = e.MaxScore,
+                UpvoteCount = e.UpvoteCount,
+                DownvoteCount = e.DownvoteCount,
+                VoteScore = e.VoteScore,
+                UserVote = userVote is null ? null : userVote.IsUpvote
+            };
+        }).ToList();
 
-        return exercises;
+        return result;
     }
 }

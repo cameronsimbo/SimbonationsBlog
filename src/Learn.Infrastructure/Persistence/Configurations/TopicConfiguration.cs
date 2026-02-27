@@ -32,6 +32,12 @@ public class TopicConfiguration : IEntityTypeConfiguration<Topic>
             .HasConversion<string>()
             .HasMaxLength(50);
 
+        builder.Property(t => t.KeyConcepts)
+            .HasMaxLength(2000);
+
+        builder.Property(t => t.GenerationGuidance)
+            .HasMaxLength(2000);
+
         builder.HasMany(t => t.Units)
             .WithOne(u => u.Topic)
             .HasForeignKey(u => u.TopicId)

@@ -99,11 +99,15 @@ builder.Services.AddCors(options =>
 
 WebApplication app = builder.Build();
 
-// Apply EF Core migrations on startup
+// Apply EF Core migrations on startup and seed catalog
 using (IServiceScope scope = app.Services.CreateScope())
 {
     LearnDbContext db = scope.ServiceProvider.GetRequiredService<LearnDbContext>();
     db.Database.Migrate();
+
+    Learn.Infrastructure.Seeding.ITopicCatalogSeeder seeder =
+        scope.ServiceProvider.GetRequiredService<Learn.Infrastructure.Seeding.ITopicCatalogSeeder>();
+    await seeder.SeedAsync();
 }
 
 // Configure the HTTP request pipeline

@@ -16,11 +16,22 @@ public class Exercise : CreatedEntity<Exercise>
     public int MaxScore { get; set; } = 100;
     public Guid? QuestionBankItemId { get; set; }
     public Guid? DailyLessonId { get; set; }
+    public int UpvoteCount { get; set; }
+    public int DownvoteCount { get; set; }
+
+    public int VoteScore => UpvoteCount - DownvoteCount;
+    public bool IsHidden => VoteScore < -3;
 
     public Lesson Lesson { get; set; } = null!;
     public QuestionBankItem? QuestionBankItem { get; set; }
     public DailyLesson? DailyLesson { get; set; }
     public ICollection<ExerciseAttempt> Attempts { get; set; } = new List<ExerciseAttempt>();
+    public ICollection<ExerciseVote> Votes { get; set; } = new List<ExerciseVote>();
+
+    public void IncrementUpvote() => UpvoteCount++;
+    public void DecrementUpvote() => UpvoteCount = Math.Max(0, UpvoteCount - 1);
+    public void IncrementDownvote() => DownvoteCount++;
+    public void DecrementDownvote() => DownvoteCount = Math.Max(0, DownvoteCount - 1);
 
     public static Exercise Create(
         Guid lessonId,

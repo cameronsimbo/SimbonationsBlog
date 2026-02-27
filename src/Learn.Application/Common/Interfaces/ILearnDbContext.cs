@@ -17,6 +17,7 @@ public interface ILearnDbContext : IDisposable
     DbSet<UserAchievement> UserAchievements { get; }
     DbSet<LeaderboardEntry> LeaderboardEntries { get; }
     DbSet<DailyLesson> DailyLessons { get; }
+    DbSet<ExerciseVote> ExerciseVotes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

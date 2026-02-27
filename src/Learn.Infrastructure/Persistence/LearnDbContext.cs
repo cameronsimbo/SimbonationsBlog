@@ -25,6 +25,7 @@ public class LearnDbContext : IdentityDbContext<IdentityUser>, ILearnDbContext
     public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
     public DbSet<LeaderboardEntry> LeaderboardEntries => Set<LeaderboardEntry>();
     public DbSet<DailyLesson> DailyLessons => Set<DailyLesson>();
+    public DbSet<ExerciseVote> ExerciseVotes => Set<ExerciseVote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

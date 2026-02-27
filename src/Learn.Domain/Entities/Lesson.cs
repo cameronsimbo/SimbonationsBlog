@@ -8,6 +8,8 @@ public class Lesson : CreatedEntity<Lesson>
     public int OrderIndex { get; set; }
     public int ExerciseCount { get; set; }
     public int EstimatedMinutes { get; set; }
+    public bool HasGeneratedExercises { get; set; }
+    public string? GenerationContext { get; set; }
 
     public Unit Unit { get; set; } = null!;
     public ICollection<Exercise> Exercises { get; set; } = new List<Exercise>();

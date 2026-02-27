@@ -20,4 +20,7 @@ public record ExerciseAttemptResultVm
     public int XPEarned { get; init; }
     public int DailySubmissionsRemaining { get; init; }
     public bool IsLessonComplete { get; init; }
+    public int UpvoteCount { get; init; }
+    public int DownvoteCount { get; init; }
+    public bool? UserVote { get; init; }
 }

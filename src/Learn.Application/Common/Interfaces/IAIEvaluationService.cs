@@ -35,6 +35,12 @@ public record ExerciseGenerationRequest
     public int Count { get; init; } = 5;
     public string? SeedPrompt { get; init; }
     public string? SeedReferenceAnswer { get; init; }
+    public string TopicName { get; init; } = string.Empty;
+    public string UnitName { get; init; } = string.Empty;
+    public string LessonName { get; init; } = string.Empty;
+    public string? KeyConcepts { get; init; }
+    public string? GenerationGuidance { get; init; }
+    public string? LessonContext { get; init; }
 }
 
 public record GeneratedExercise

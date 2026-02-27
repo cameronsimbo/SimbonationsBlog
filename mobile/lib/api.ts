@@ -1,4 +1,5 @@
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
@@ -16,6 +17,35 @@ export function setAuthToken(token: string | null) {
     delete api.defaults.headers.common["Authorization"];
   }
 }
+
+export async function loadStoredToken(): Promise<string | null> {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    if (token) {
+      setAuthToken(token);
+    }
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+export async function storeToken(token: string): Promise<void> {
+  await AsyncStorage.setItem("authToken", token);
+  setAuthToken(token);
+}
+
+export async function clearToken(): Promise<void> {
+  await AsyncStorage.removeItem("authToken");
+  setAuthToken(null);
+}
+
+// Auth
+export const register = (email: string, password: string, displayName?: string) =>
+  api.post("/Auth/register", { email, password, displayName });
+
+export const login = (email: string, password: string) =>
+  api.post("/Auth/login", { email, password });
 
 // Topics
 export const getTopics = (publishedOnly = true) =>
@@ -40,10 +70,15 @@ export const getExercises = (lessonId: string) =>
 
 export const submitAnswer = (data: {
   exerciseId: string;
-  answer: string;
+  userAnswer: string;
   timeTakenSeconds: number;
-  isAudioSubmission?: boolean;
 }) => api.post("/Exercises/submit", data);
+
+export const generateExercises = (lessonId: string, count: number = 5) =>
+  api.post("/Exercises/generate", { lessonId, count });
+
+export const voteOnExercise = (exerciseId: string, isUpvote: boolean) =>
+  api.post(`/Exercises/${exerciseId}/vote`, { isUpvote });
 
 // Streaks
 export const getMyStreak = () => api.get("/Streaks/me");

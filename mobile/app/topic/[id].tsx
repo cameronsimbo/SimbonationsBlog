@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import { getTopic } from "../../lib/api";
 import { Colors, SubjectDomains, DifficultyLevels } from "../../lib/constants";
 
@@ -92,7 +92,11 @@ export default function TopicDetailScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item, index }) => (
-            <TouchableOpacity style={styles.unitCard} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.unitCard}
+              activeOpacity={0.7}
+              onPress={() => router.push(`/unit/${item.id}`)}
+            >
               <View style={styles.unitNumber}>
                 <Text style={styles.unitNumberText}>{index + 1}</Text>
               </View>

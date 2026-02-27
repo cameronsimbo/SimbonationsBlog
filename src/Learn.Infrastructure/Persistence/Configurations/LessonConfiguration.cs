@@ -17,6 +17,12 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.Property(l => l.Description)
             .HasMaxLength(2000);
 
+        builder.Property(l => l.GenerationContext)
+            .HasMaxLength(2000);
+
+        builder.Property(l => l.HasGeneratedExercises)
+            .HasDefaultValue(false);
+
         builder.HasIndex(l => new { l.UnitId, l.OrderIndex });
 
         builder.HasMany(l => l.Exercises)

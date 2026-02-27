@@ -1,5 +1,6 @@
 using Learn.Application.Common.Interfaces;
 using Learn.Infrastructure.Persistence;
+using Learn.Infrastructure.Seeding;
 using Learn.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public static class ConfigureServices
 
         services.AddScoped<IAIEvaluationService, AIEvaluationService>();
         services.AddScoped<ISpeechService, SpeechService>();
+        services.AddScoped<ITopicCatalogSeeder, TopicCatalogSeeder>();
 
         return services;
     }

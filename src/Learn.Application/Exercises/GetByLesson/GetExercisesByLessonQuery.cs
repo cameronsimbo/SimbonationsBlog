@@ -19,4 +19,8 @@ public record ExerciseVm
     public string? AudioUrl { get; init; }
     public string? Hints { get; init; }
     public int MaxScore { get; init; }
+    public int UpvoteCount { get; init; }
+    public int DownvoteCount { get; init; }
+    public int VoteScore { get; init; }
+    public bool? UserVote { get; init; }
 }

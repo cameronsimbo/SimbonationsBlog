@@ -20,8 +20,8 @@ export const Colors = {
 export const SubjectDomains: Record<number, string> = {
   0: "Language",
   1: "History",
-  2: "Science",
-  3: "Finance",
+  2: "Finance",
+  3: "Science",
   4: "Technology",
   5: "General",
 };
