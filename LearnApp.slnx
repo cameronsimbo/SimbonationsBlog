@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Learn.Application/Learn.Application.csproj" />
+    <Project Path="src/Learn.Domain/Learn.Domain.csproj" />
+    <Project Path="src/Learn.Infrastructure/Learn.Infrastructure.csproj" />
+    <Project Path="src/Learn.WebAPI/Learn.WebAPI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Learn.Application.Tests/Learn.Application.Tests.csproj" />
+    <Project Path="tests/Learn.Domain.Tests/Learn.Domain.Tests.csproj" />
+    <Project Path="tests/Learn.IntegrationTests/Learn.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

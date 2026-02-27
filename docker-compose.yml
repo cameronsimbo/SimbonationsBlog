@@ -20,20 +20,17 @@ services:
     depends_on:
       - sqlserver
     environment:
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=SimbonationsBlog;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=LearnPlatform;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True
       - ASPNETCORE_ENVIRONMENT=Development
       - Cors__AllowedOrigins__0=http://localhost:3000
-
-  website:
-    build:
-      context: .
-      dockerfile: Dockerfile.website
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
-    environment:
-      - NEXT_PUBLIC_API_URL=http://api:5000/api
+      - Cors__AllowedOrigins__1=http://localhost:8081
+      - Jwt__Key=YourSuperSecretKeyForDevelopment1234567890
+      - Jwt__Issuer=LearnPlatform
+      - Jwt__Audience=LearnPlatformApp
+      - AzureOpenAI__Endpoint=https://your-openai.openai.azure.com/
+      - AzureOpenAI__ApiKey=your-api-key
+      - AzureOpenAI__DeploymentName=gpt-4o
+      - DailySubmissionLimit=50
 
 volumes:
   sqldata:

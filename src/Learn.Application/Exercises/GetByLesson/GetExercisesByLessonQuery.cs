@@ -1,0 +1,22 @@
+using Learn.Domain.Enums;
+using MediatR;
+
+namespace Learn.Application.Exercises.GetByLesson;
+
+public record GetExercisesByLessonQuery : IRequest<List<ExerciseVm>>
+{
+    public Guid LessonId { get; init; }
+}
+
+public record ExerciseVm
+{
+    public Guid Id { get; init; }
+    public int OrderIndex { get; init; }
+    public ExerciseType ExerciseType { get; init; }
+    public DifficultyLevel DifficultyLevel { get; init; }
+    public string Prompt { get; init; } = string.Empty;
+    public string? Context { get; init; }
+    public string? AudioUrl { get; init; }
+    public string? Hints { get; init; }
+    public int MaxScore { get; init; }
+}
