@@ -61,6 +61,14 @@ function RootLayoutNav() {
           name="lesson/[id]"
           options={{ title: "Lesson", headerBackTitle: "Back" }}
         />
+        <Stack.Screen
+          name="path/[topicId]"
+          options={{ title: "Learning Path", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="session/[topicId]"
+          options={{ title: "Session", headerBackTitle: "Back", gestureEnabled: false }}
+        />
       </Stack>
     </>
   );

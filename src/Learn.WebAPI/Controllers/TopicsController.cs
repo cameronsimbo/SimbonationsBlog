@@ -1,6 +1,8 @@
 using Learn.Application.Topics.Create;
+using Learn.Application.Topics.Enroll;
 using Learn.Application.Topics.Get;
 using Learn.Application.Topics.GetAll;
+using Learn.Application.Progress.GetLearningPath;
 using Learn.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,5 +39,31 @@ public class TopicsController : ApiControllerBase
     {
         Guid id = await Mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(Get), new { id }, id);
+    }
+
+    [HttpPost("{id:guid}/enroll")]
+    [Authorize]
+    public async Task<ActionResult<EnrollmentResultVm>> Enroll(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        EnrollmentResultVm result = await Mediator.Send(
+            new EnrollInTopicCommand { TopicId = id },
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/path")]
+    [Authorize]
+    public async Task<ActionResult<LearningPathVm>> GetPath(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        LearningPathVm result = await Mediator.Send(
+            new GetLearningPathQuery { TopicId = id },
+            cancellationToken);
+
+        return Ok(result);
     }
 }

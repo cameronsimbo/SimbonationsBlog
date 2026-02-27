@@ -18,6 +18,8 @@ public interface ILearnDbContext : IDisposable
     DbSet<LeaderboardEntry> LeaderboardEntries { get; }
     DbSet<DailyLesson> DailyLessons { get; }
     DbSet<ExerciseVote> ExerciseVotes { get; }
+    DbSet<ReviewItem> ReviewItems { get; }
+    DbSet<UserTopicEnrollment> UserTopicEnrollments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -14,6 +14,7 @@ public class ExerciseAttempt : CreatedEntity<ExerciseAttempt>
     public int TimeTakenSeconds { get; set; }
     public bool IsAudioSubmission { get; set; }
     public int XPEarned { get; set; }
+    public bool IsReview { get; set; }
 
     public Exercise Exercise { get; set; } = null!;
 

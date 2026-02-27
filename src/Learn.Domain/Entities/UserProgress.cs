@@ -11,6 +11,8 @@ public class UserProgress : CreatedEntity<UserProgress>
     public double AverageScore { get; set; }
     public bool IsCompleted { get; set; }
     public DateTime? CompletedDate { get; set; }
+    public int MasteryLevel { get; set; }
+    public int TimesCompleted { get; set; }
 
     public Topic Topic { get; set; } = null!;
     public Lesson Lesson { get; set; } = null!;
@@ -49,6 +51,8 @@ public class UserProgress : CreatedEntity<UserProgress>
         {
             IsCompleted = true;
             CompletedDate = DateTime.UtcNow;
+            TimesCompleted++;
+            MasteryLevel = Domain.Services.LevelThresholds.GetCrowns(BestScore, TimesCompleted);
         }
     }
 }

@@ -103,4 +103,30 @@ export const createQuestionBankItem = (data: {
   hints?: string;
 }) => api.post("/QuestionBank", data);
 
+// Dashboard
+export const getDashboard = () => api.get("/Dashboard");
+
+// Enrollment
+export const enrollInTopic = (topicId: string) =>
+  api.post(`/Topics/${topicId}/enroll`);
+
+// Learning Path
+export const getLearningPath = (topicId: string) =>
+  api.get(`/Topics/${topicId}/path`);
+
+// Sessions
+export const startSession = (topicId: string) =>
+  api.post("/Sessions/start", { topicId });
+
+export const completeSession = (data: {
+  topicId: string;
+  results: {
+    exerciseId: string;
+    score: number;
+    isPassing: boolean;
+    xpEarned: number;
+    isReview: boolean;
+  }[];
+}) => api.post("/Sessions/complete", data);
+
 export default api;
