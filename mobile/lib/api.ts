@@ -47,6 +47,9 @@ export const register = (email: string, password: string, displayName?: string) 
 export const login = (email: string, password: string) =>
   api.post("/Auth/login", { email, password });
 
+export const googleLogin = (idToken: string) =>
+  api.post("/Auth/google", { idToken });
+
 // Topics
 export const getTopics = (publishedOnly = true) =>
   api.get("/Topics", { params: { publishedOnly } });

@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Google.Apis.Auth;
 using Learn.Application.Common.Interfaces;
 using Learn.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -79,6 +80,79 @@ public class AuthController : ControllerBase
         return Ok(tokenResult);
     }
 
+    [HttpPost("google")]
+    public async Task<ActionResult<AuthResultVm>> GoogleLogin(
+        GoogleLoginRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        GoogleJsonWebSignature.Payload payload;
+
+        try
+        {
+            string googleClientId = _configuration["Google:ClientId"]
+                ?? throw new InvalidOperationException("Google ClientId not configured.");
+
+            GoogleJsonWebSignature.ValidationSettings settings = new()
+            {
+                Audience = new[] { googleClientId }
+            };
+
+            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+        }
+        catch (InvalidJwtException)
+        {
+            return Unauthorized(new { Error = "Invalid Google token." });
+        }
+
+        if (string.IsNullOrWhiteSpace(payload.Email))
+        {
+            return BadRequest(new { Error = "Google account has no email address." });
+        }
+
+        IdentityUser? user = await _userManager.FindByEmailAsync(payload.Email);
+
+        if (user is null)
+        {
+            user = new IdentityUser
+            {
+                UserName = payload.Email,
+                Email = payload.Email,
+                EmailConfirmed = true
+            };
+
+            IdentityResult createResult = await _userManager.CreateAsync(user);
+
+            if (!createResult.Succeeded)
+            {
+                return BadRequest(new { Errors = createResult.Errors.Select(e => e.Description) });
+            }
+
+            await _userManager.AddLoginAsync(
+                user,
+                new UserLoginInfo("Google", payload.Subject, "Google"));
+
+            UserStreak streak = UserStreak.Create(user.Id);
+            _db.UserStreaks.Add(streak);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            // Link Google login if not already linked
+            System.Collections.Generic.IList<UserLoginInfo> logins = await _userManager.GetLoginsAsync(user);
+            bool hasGoogleLogin = logins.Any(l => l.LoginProvider == "Google");
+
+            if (!hasGoogleLogin)
+            {
+                await _userManager.AddLoginAsync(
+                    user,
+                    new UserLoginInfo("Google", payload.Subject, "Google"));
+            }
+        }
+
+        AuthResultVm tokenResult = GenerateToken(user);
+        return Ok(tokenResult);
+    }
+
     private AuthResultVm GenerateToken(IdentityUser user)
     {
         string jwtKey = _configuration["Jwt:Key"]
@@ -129,6 +203,11 @@ public record LoginRequest
 {
     public string Email { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
+}
+
+public record GoogleLoginRequest
+{
+    public string IdToken { get; init; } = string.Empty;
 }
 
 public record AuthResultVm
