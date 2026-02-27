@@ -1,5 +1,6 @@
 using Learn.Application.Common.Interfaces;
 using Learn.Infrastructure.Persistence;
+using Learn.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,9 @@ public static class ConfigureServices
             })
             .AddEntityFrameworkStores<LearnDbContext>()
             .AddDefaultTokenProviders();
+
+        services.AddScoped<IAIEvaluationService, AIEvaluationService>();
+        services.AddScoped<ISpeechService, SpeechService>();
 
         return services;
     }

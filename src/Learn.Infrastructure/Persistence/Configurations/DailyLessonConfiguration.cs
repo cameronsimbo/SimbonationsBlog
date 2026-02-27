@@ -20,7 +20,7 @@ public class DailyLessonConfiguration : IEntityTypeConfiguration<DailyLesson>
         builder.HasOne(e => e.Topic)
             .WithMany()
             .HasForeignKey(e => e.TopicId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasMany(e => e.Exercises)
             .WithOne(ex => ex.DailyLesson)
