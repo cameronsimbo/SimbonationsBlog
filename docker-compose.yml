@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "5000:5000"
+    depends_on:
+      - sqlserver
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=SimbonationsBlog;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Cors__AllowedOrigins__0=http://localhost:3000
+
+  website:
+    build:
+      context: .
+      dockerfile: Dockerfile.website
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:5000/api
+
+volumes:
+  sqldata:
