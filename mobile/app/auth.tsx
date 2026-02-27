@@ -10,13 +10,26 @@ import {
   Platform,
 } from "react-native";
 import { router } from "expo-router";
-import {
-  GoogleSignin,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
 import { register, login, googleLogin } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Colors } from "../lib/constants";
+
+// Conditionally load Google Sign-In — it requires native modules that
+// are unavailable on web and in Expo Go.
+let GoogleSigninModule: any = null;
+let statusCodesModule: any = null;
+let googleSignInAvailable = false;
+
+if (Platform.OS !== "web") {
+  try {
+    const gsi = require("@react-native-google-signin/google-signin");
+    GoogleSigninModule = gsi.GoogleSignin;
+    statusCodesModule = gsi.statusCodes;
+    googleSignInAvailable = true;
+  } catch {
+    // Native module unavailable (e.g. running in Expo Go without dev build)
+  }
+}
 
 const GOOGLE_WEB_CLIENT_ID =
   "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com";
@@ -31,10 +44,16 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      offlineAccess: false,
-    });
+    if (googleSignInAvailable && GoogleSigninModule) {
+      try {
+        GoogleSigninModule.configure({
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+          offlineAccess: false,
+        });
+      } catch {
+        googleSignInAvailable = false;
+      }
+    }
   }, []);
 
   const handleSubmit = async () => {
@@ -66,12 +85,19 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!googleSignInAvailable || !GoogleSigninModule) {
+      setError("Google Sign-In is not available on this platform.");
+      return;
+    }
+
     setGoogleLoading(true);
     setError(null);
 
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const userInfo = await GoogleSignin.signIn();
+      await GoogleSigninModule.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+      const userInfo = await GoogleSigninModule.signIn();
       const idToken = userInfo.data?.idToken;
 
       if (!idToken) {
@@ -83,14 +109,19 @@ export default function AuthScreen() {
       await signIn(response.data.token);
       router.replace("/(tabs)");
     } catch (err: any) {
-      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
-        // User cancelled — do nothing
+      if (
+        statusCodesModule &&
+        err.code === statusCodesModule.SIGN_IN_CANCELLED
+      ) {
         return;
       }
-      if (err.code === statusCodes.IN_PROGRESS) {
+      if (statusCodesModule && err.code === statusCodesModule.IN_PROGRESS) {
         return;
       }
-      if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      if (
+        statusCodesModule &&
+        err.code === statusCodesModule.PLAY_SERVICES_NOT_AVAILABLE
+      ) {
         setError("Google Play Services not available.");
         return;
       }

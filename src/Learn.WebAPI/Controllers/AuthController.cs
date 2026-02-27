@@ -87,6 +87,11 @@ public class AuthController : ControllerBase
     {
         GoogleJsonWebSignature.Payload payload;
 
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            return Unauthorized(new { Error = "Invalid Google token." });
+        }
+
         try
         {
             string googleClientId = _configuration["Google:ClientId"]
@@ -100,6 +105,10 @@ public class AuthController : ControllerBase
             payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
         }
         catch (InvalidJwtException)
+        {
+            return Unauthorized(new { Error = "Invalid Google token." });
+        }
+        catch (Exception ex) when (ex is ArgumentException or FormatException or HttpRequestException)
         {
             return Unauthorized(new { Error = "Invalid Google token." });
         }

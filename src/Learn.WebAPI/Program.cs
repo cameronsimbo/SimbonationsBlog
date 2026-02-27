@@ -103,7 +103,15 @@ WebApplication app = builder.Build();
 using (IServiceScope scope = app.Services.CreateScope())
 {
     LearnDbContext db = scope.ServiceProvider.GetRequiredService<LearnDbContext>();
-    db.Database.Migrate();
+
+    if (db.Database.IsRelational())
+    {
+        db.Database.Migrate();
+    }
+    else
+    {
+        db.Database.EnsureCreated();
+    }
 
     Learn.Infrastructure.Seeding.ITopicCatalogSeeder seeder =
         scope.ServiceProvider.GetRequiredService<Learn.Infrastructure.Seeding.ITopicCatalogSeeder>();
