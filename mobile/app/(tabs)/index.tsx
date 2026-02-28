@@ -85,7 +85,7 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) {
-      router.replace("/login");
+      router.replace("/auth");
       return;
     }
     fetchDashboard();

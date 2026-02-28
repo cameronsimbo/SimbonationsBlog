@@ -8,6 +8,12 @@ const api = axios.create({
 });
 
 let authToken: string | null = null;
+let onUnauthorized: (() => void) | null = null;
+
+// Register a callback to be called when a 401 is received (e.g. signOut)
+export function setOnUnauthorized(callback: () => void) {
+  onUnauthorized = callback;
+}
 
 export function setAuthToken(token: string | null) {
   authToken = token;
@@ -17,6 +23,18 @@ export function setAuthToken(token: string | null) {
     delete api.defaults.headers.common["Authorization"];
   }
 }
+
+// 401 interceptor — auto sign-out on expired/invalid tokens
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && authToken) {
+      await clearToken();
+      onUnauthorized?.();
+    }
+    return Promise.reject(error);
+  }
+);
 
 export async function loadStoredToken(): Promise<string | null> {
   try {

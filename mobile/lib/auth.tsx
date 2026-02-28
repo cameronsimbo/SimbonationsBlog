@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { loadStoredToken, storeToken, clearToken } from "./api";
+import { loadStoredToken, storeToken, clearToken, setOnUnauthorized } from "./api";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,7 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Register 401 interceptor callback to auto sign-out
+    setOnUnauthorized(() => setToken(null));
+
     loadStoredToken()
+      .then((t) => {
+        if (t && isTokenExpired(t)) {
+          clearToken();
+          return null;
+        }
+        return t;
+      })
       .then((t) => setToken(t))
       .finally(() => setIsLoading(false));
   }, []);
@@ -54,4 +64,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+// Decode JWT and check if expired (no library needed)
+function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+    // exp is in seconds, Date.now() in ms — add 30s buffer
+    return payload.exp * 1000 < Date.now() + 30000;
+  } catch {
+    return true; // malformed token → treat as expired
+  }
 }
