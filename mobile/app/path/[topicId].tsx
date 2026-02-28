@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { getLearningPath, startSession } from "../../lib/api";
 import { Colors } from "../../lib/constants";
 
@@ -81,9 +81,11 @@ export default function PathScreen() {
     }
   }, [topicId]);
 
-  useEffect(() => {
-    fetchPath();
-  }, [fetchPath]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPath();
+    }, [fetchPath])
+  );
 
   const handleStartSession = async () => {
     if (!topicId) return;
@@ -125,6 +127,12 @@ export default function PathScreen() {
     <View style={pathStyles.container}>
       {/* Header */}
       <View style={pathStyles.header}>
+        <TouchableOpacity
+          style={pathStyles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={pathStyles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
         <Text style={pathStyles.title}>{path.topicName}</Text>
         <View style={pathStyles.xpBadge}>
           <Text style={pathStyles.xpText}>⚡ {path.totalXPEarned} XP</Text>
@@ -268,6 +276,17 @@ const pathStyles = StyleSheet.create({
     borderRadius: 12,
   },
   retryBtnText: { color: Colors.text, fontWeight: "700" },
+
+  // Back button
+  backButton: {
+    paddingVertical: 6,
+    paddingRight: 12,
+  },
+  backButtonText: {
+    color: Colors.primary,
+    fontSize: 16,
+    fontWeight: "700",
+  },
 
   // Header
   header: {
