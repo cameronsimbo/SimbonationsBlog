@@ -14,4 +14,5 @@ public record ExerciseAttemptResultVm
     public int UpvoteCount { get; init; }
     public int DownvoteCount { get; init; }
     public bool? UserVote { get; init; }
+    public string GradedBy { get; init; } = string.Empty;
 }

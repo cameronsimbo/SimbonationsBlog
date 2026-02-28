@@ -20,7 +20,8 @@ public class AIEvaluationService : IAIEvaluationService
             IsPassing = true,
             Feedback = $"Good effort! Your answer demonstrates understanding of the topic. Consider expanding on the key concepts for a higher score.",
             SuggestedCorrection = null,
-            DetailedBreakdown = "Content accuracy: 80% | Depth of analysis: 70% | Clarity: 75%"
+            DetailedBreakdown = "Content accuracy: 80% | Depth of analysis: 70% | Clarity: 75%",
+            GradedBy = "Fallback"
         };
     }
 

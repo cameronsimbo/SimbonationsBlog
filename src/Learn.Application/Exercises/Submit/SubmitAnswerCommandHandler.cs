@@ -141,7 +141,8 @@ public class SubmitAnswerCommandHandler : IRequestHandler<SubmitAnswerCommand, E
             DetailedBreakdown = aiResult.DetailedBreakdown,
             XPEarned = xpEarned,
             DailySubmissionsRemaining = Math.Max(0, dailySubmissionsRemaining),
-            IsLessonComplete = isLessonComplete
+            IsLessonComplete = isLessonComplete,
+            GradedBy = aiResult.GradedBy
         };
     }
 }

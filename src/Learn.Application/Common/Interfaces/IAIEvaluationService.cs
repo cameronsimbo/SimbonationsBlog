@@ -25,6 +25,7 @@ public record AIEvaluationResult
     public string Feedback { get; init; } = string.Empty;
     public string? SuggestedCorrection { get; init; }
     public string? DetailedBreakdown { get; init; }
+    public string GradedBy { get; init; } = "Unknown";
 }
 
 public record ExerciseGenerationRequest

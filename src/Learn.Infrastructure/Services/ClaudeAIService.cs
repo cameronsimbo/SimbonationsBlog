@@ -47,12 +47,14 @@ public class ClaudeAIService : IAIEvaluationService
         {
             string prompt = BuildEvaluationPrompt(request);
             string response = await CallClaudeAsync(prompt, maxTokens: 512, cancellationToken);
-            return ParseEvaluationResponse(response);
+            AIEvaluationResult result = ParseEvaluationResponse(response);
+            return result with { GradedBy = _options.Model };
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Claude grading failed, falling back to Ollama");
-            return await _ollamaFallback.EvaluateAnswerAsync(request, cancellationToken);
+            // Use CancellationToken.None so the fallback completes even if the HTTP request was cancelled
+            return await _ollamaFallback.EvaluateAnswerAsync(request, CancellationToken.None);
         }
     }
 
@@ -67,7 +69,7 @@ public class ClaudeAIService : IAIEvaluationService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Claude exercise generation failed, falling back to Ollama");
-            return await _ollamaFallback.GenerateExercisesAsync(request, cancellationToken);
+            return await _ollamaFallback.GenerateExercisesAsync(request, CancellationToken.None);
         }
     }
 
@@ -91,7 +93,11 @@ public class ClaudeAIService : IAIEvaluationService
         request.Headers.Add("x-api-key", _options.ApiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
-        HttpResponseMessage httpResponse = await _httpClient.SendAsync(request, cancellationToken);
+        // Dedicated timeout — not linked to the request token so client disconnects don't abort mid-call
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
+
+        HttpResponseMessage httpResponse = await _httpClient.SendAsync(request, cts.Token);
         httpResponse.EnsureSuccessStatusCode();
 
         string responseJson = await httpResponse.Content.ReadAsStringAsync(cancellationToken);

@@ -48,6 +48,7 @@ interface ExerciseResult {
   isReview: boolean;
   feedback: string;
   suggestedCorrection: string | null;
+  gradedBy: string;
 }
 
 interface SessionComplete {
@@ -128,6 +129,7 @@ export default function SessionScreen() {
         isReview: exercise.isReview,
         feedback: response.data.feedback,
         suggestedCorrection: response.data.suggestedCorrection ?? null,
+        gradedBy: response.data.gradedBy ?? "",
       };
 
       setResults((prev) => [...prev, result]);
@@ -317,6 +319,10 @@ export default function SessionScreen() {
           </Text>
           <Text style={s.feedbackXP}>+{currentFeedback.xpEarned} XP</Text>
         </View>
+
+        {currentFeedback.gradedBy ? (
+          <Text style={s.gradedByText}>Graded by {currentFeedback.gradedBy}</Text>
+        ) : null}
 
         <View style={s.feedbackCard}>
           <Text style={s.feedbackTitle}>Feedback</Text>
@@ -571,6 +577,13 @@ const s = StyleSheet.create({
   },
   feedbackBadgeText: { color: "#fff", fontSize: 16, fontWeight: "800" },
   feedbackXP: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  gradedByText: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    textAlign: "right",
+    marginBottom: 8,
+    fontStyle: "italic",
+  },
   feedbackCard: {
     backgroundColor: Colors.surface,
     borderRadius: 14,
