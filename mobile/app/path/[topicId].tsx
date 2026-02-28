@@ -329,7 +329,13 @@ export default function PathScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(tabs)");
+            }
+          }}
         >
           <Text style={styles.backButtonText}>{"\u2190"} Back</Text>
         </TouchableOpacity>
