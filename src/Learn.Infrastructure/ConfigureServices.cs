@@ -29,17 +29,25 @@ public static class ConfigureServices
             .AddEntityFrameworkStores<LearnDbContext>()
             .AddDefaultTokenProviders();
 
-        // Bind Ollama options from configuration
+        // Bind options
         services.Configure<OllamaOptions>(configuration.GetSection(OllamaOptions.SectionName));
+        services.Configure<ClaudeOptions>(configuration.GetSection(ClaudeOptions.SectionName));
 
-        // Register OllamaService with a named HttpClient
-        services.AddHttpClient<IAIEvaluationService, OllamaService>(client =>
+        // Register OllamaService as concrete type (used as fallback inside ClaudeAIService)
+        services.AddHttpClient<OllamaService>(client =>
         {
-            var ollamaSection = configuration.GetSection(OllamaOptions.SectionName);
-            string baseUrl = ollamaSection["BaseUrl"] ?? "http://ollama:11434";
+            string baseUrl = configuration["Ollama:BaseUrl"] ?? "http://ollama:11434";
             client.BaseAddress = new Uri(baseUrl);
-            int timeoutSeconds = int.TryParse(ollamaSection["TimeoutSeconds"], out int t) ? t : 120;
-            client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+            int timeout = int.TryParse(configuration["Ollama:TimeoutSeconds"], out int t) ? t : 120;
+            client.Timeout = TimeSpan.FromSeconds(timeout);
+        });
+
+        // Register ClaudeAIService as the primary IAIEvaluationService
+        services.AddHttpClient<IAIEvaluationService, ClaudeAIService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.anthropic.com");
+            int timeout = int.TryParse(configuration["Claude:TimeoutSeconds"], out int t) ? t : 15;
+            client.Timeout = TimeSpan.FromSeconds(timeout);
         });
 
         services.AddScoped<ISpeechService, SpeechService>();

@@ -7,8 +7,8 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Longer timeout for AI-powered endpoints (LLM inference on CPU)
-const AI_TIMEOUT = 120_000;
+// Longer timeout for AI-powered endpoints (Claude ~2s primary, Ollama fallback)
+const AI_TIMEOUT = 20_000;
 
 let authToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
