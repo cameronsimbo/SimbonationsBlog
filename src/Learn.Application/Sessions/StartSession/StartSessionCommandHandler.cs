@@ -75,8 +75,9 @@ public class StartSessionCommandHandler : IRequestHandler<StartSessionCommand, S
         (int newCount, int reviewCount) = SessionEngine.CalculateSessionMix(dueReviews.Count);
 
         // Get existing exercises for the current lesson
+        // IsHidden is a computed C# property (not a DB column) — inline the condition
         List<Exercise> existingExercises = await _db.Exercises
-            .Where(e => e.LessonId == currentLesson.Id && e.IsHidden == false)
+            .Where(e => e.LessonId == currentLesson.Id && (e.UpvoteCount - e.DownvoteCount) >= -3)
             .OrderBy(e => e.OrderIndex)
             .ToListAsync(cancellationToken);
 
