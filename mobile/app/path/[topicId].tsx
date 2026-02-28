@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from "react-native";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { getLearningPath, startSession } from "../../lib/api";
@@ -47,110 +48,158 @@ interface LearningPath {
 
 // ─── Layout constants ────────────────────────────────────
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const NODE_SIZE = 68;
+const NODE_SIZE = 76;
 const NODE_RADIUS = NODE_SIZE / 2;
-const VERTICAL_GAP = 110;
-const AMPLITUDE = 70;
+const SHADOW_DEPTH = 8;
+const VERTICAL_GAP = 100;
+const AMPLITUDE = Math.min(SCREEN_WIDTH * 0.22, 90);
 const CENTER_X = SCREEN_WIDTH / 2;
-const UNIT_BANNER_HEIGHT = 48;
-const TOP_PADDING = 20;
+const TOP_PADDING = 30;
+const TRAIL_WIDTH = 16;
+const TRAIL_SHADOW_WIDTH = 22;
+const BANNER_HEIGHT = 56;
 
-// ─── Flattened path item ─────────────────────────────────
-type PathNodeType = "lesson" | "unit-banner";
+// Duolingo S-curve: repeating x-offset pattern (values -1..1)
+// Creates smooth arcs: center -> right -> center -> left -> center
+const X_OFFSETS = [0, 0.58, 0.95, 0.58, 0, -0.58, -0.95, -0.58];
 
-interface PathNode {
-  type: PathNodeType;
-  lesson?: PathLesson;
-  unitIndex?: number;
-  unitName?: string;
-  unitCompleted?: boolean;
-  unitLocked?: boolean;
+// ─── Path node types ─────────────────────────────────────
+interface LessonNode {
+  type: "lesson";
+  lesson: PathLesson;
   x: number;
   y: number;
-  globalIndex: number;
+  lessonIndex: number;
 }
 
-// ─── Build node positions with sinusoidal winding ────────
-function buildPathNodes(units: PathUnit[]): PathNode[] {
+interface BannerNode {
+  type: "banner";
+  unitIndex: number;
+  unitName: string;
+  unitCompleted: boolean;
+  unitLocked: boolean;
+  y: number;
+}
+
+type PathNode = LessonNode | BannerNode;
+
+// ─── Position nodes in Duolingo S-curve ──────────────────
+function buildPathLayout(units: PathUnit[]): PathNode[] {
   const nodes: PathNode[] = [];
-  let globalIndex = 0;
+  let yOffset = TOP_PADDING;
+  let lessonCounter = 0;
 
   for (let unitIdx = 0; unitIdx < units.length; unitIdx++) {
     const unit = units[unitIdx];
 
     // Unit banner
-    const bannerY = TOP_PADDING + globalIndex * VERTICAL_GAP;
     nodes.push({
-      type: "unit-banner",
+      type: "banner",
       unitIndex: unitIdx,
       unitName: unit.name,
       unitCompleted: unit.isCompleted,
       unitLocked: unit.isLocked,
-      x: CENTER_X,
-      y: bannerY,
-      globalIndex,
+      y: yOffset,
     });
-    globalIndex++;
+    yOffset += BANNER_HEIGHT + 20;
 
-    // Lesson nodes — sinusoidal x offset for winding path
-    for (let lessonIdx = 0; lessonIdx < unit.lessons.length; lessonIdx++) {
-      const lesson = unit.lessons[lessonIdx];
-      const y = TOP_PADDING + globalIndex * VERTICAL_GAP;
-      const x = CENTER_X + AMPLITUDE * Math.sin(globalIndex * 0.85);
+    // Lesson nodes following S-curve pattern
+    for (const lesson of unit.lessons) {
+      const patternIdx = lessonCounter % X_OFFSETS.length;
+      const x = CENTER_X + X_OFFSETS[patternIdx] * AMPLITUDE;
 
       nodes.push({
         type: "lesson",
         lesson,
         x,
-        y,
-        globalIndex,
+        y: yOffset,
+        lessonIndex: lessonCounter,
       });
-      globalIndex++;
+
+      yOffset += VERTICAL_GAP;
+      lessonCounter++;
     }
+
+    yOffset += 20;
   }
 
   return nodes;
 }
 
-// ─── SVG connector curves between consecutive lessons ────
-function buildConnectorPaths(
-  nodes: PathNode[]
-): { d: string; color: string }[] {
-  const paths: { d: string; color: string }[] = [];
-  const lessonNodes = nodes.filter((n) => n.type === "lesson");
-
-  for (let i = 0; i < lessonNodes.length - 1; i++) {
-    const from = lessonNodes[i];
-    const to = lessonNodes[i + 1];
-
-    const fromY = from.y + NODE_RADIUS;
-    const toY = to.y - NODE_RADIUS;
-    const midY = (fromY + toY) / 2;
-
-    // Quadratic Bézier control point — offset for smooth S-curve
-    const cpX = (from.x + to.x) / 2 + (to.x - from.x) * 0.3;
-
-    const d = `M ${from.x} ${fromY} Q ${cpX} ${midY} ${to.x} ${toY}`;
-
-    const isActive =
-      from.lesson?.isCompleted === true && to.lesson?.isLocked !== true;
-    const color = isActive ? Colors.correct : Colors.border;
-
-    paths.push({ d, color });
+// ─── Catmull-Rom -> cubic Bezier smooth trail ────────────
+function buildTrailPath(points: { x: number; y: number }[]): string {
+  if (points.length < 2) return "";
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
   }
 
-  return paths;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  const tension = 0.4;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+
+    const cp1x = p1.x + ((p2.x - p0.x) * tension) / 3;
+    const cp1y = p1.y + ((p2.y - p0.y) * tension) / 3;
+    const cp2x = p2.x - ((p3.x - p1.x) * tension) / 3;
+    const cp2y = p2.y - ((p3.y - p1.y) * tension) / 3;
+
+    d += ` C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${p2.x} ${p2.y}`;
+  }
+
+  return d;
+}
+
+// ─── Build trail segments (active green + inactive gray) ─
+function buildTrailPaths(lessonNodes: LessonNode[]) {
+  const allPts = lessonNodes.map((n) => ({ x: n.x, y: n.y }));
+  const fullPath = buildTrailPath(allPts);
+
+  // Find last active node (completed or current)
+  let activeEndIdx = -1;
+  for (let i = 0; i < lessonNodes.length; i++) {
+    if (
+      lessonNodes[i].lesson.isCompleted ||
+      lessonNodes[i].lesson.isCurrent
+    ) {
+      activeEndIdx = i;
+    }
+  }
+
+  const activePath =
+    activeEndIdx >= 1
+      ? buildTrailPath(allPts.slice(0, activeEndIdx + 1))
+      : "";
+
+  return { fullPath, activePath };
+}
+
+// ─── Color helpers ───────────────────────────────────────
+function getNodeColors(lesson: PathLesson) {
+  if (lesson.isCompleted) {
+    return { bg: "#58CC02", shadow: "#449B02", border: "#58CC02" };
+  }
+  if (lesson.isCurrent) {
+    return { bg: "#58CC02", shadow: "#449B02", border: "#7CE830" };
+  }
+  if (lesson.isLocked) {
+    return { bg: "#3C3C3C", shadow: "#2A2A2A", border: "#3C3C3C" };
+  }
+  return { bg: Colors.surface, shadow: "#152429", border: Colors.border };
 }
 
 // ─── Star icon ───────────────────────────────────────────
-function StarIcon({ filled, size = 30 }: { filled: boolean; size?: number }) {
+function StarIcon({ filled, size = 32 }: { filled: boolean; size?: number }) {
   return (
     <Text
       style={{
         fontSize: size,
-        color: filled ? "#FFFFFF" : Colors.textMuted,
+        color: filled ? "#FFFFFF" : "#6B6B6B",
         textAlign: "center",
-        lineHeight: size + 4,
+        lineHeight: size + 2,
       }}
     >
       {filled ? "\u2605" : "\u2606"}
@@ -167,6 +216,36 @@ function CrownDots({ count }: { count: number }) {
         <View key={i} style={styles.crownDot} />
       ))}
     </View>
+  );
+}
+
+// ─── Bouncing animation for current node ─────────────────
+function BouncingNode({ children }: { children: React.ReactNode }) {
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, {
+          toValue: -6,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bounce]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateY: bounce }] }}>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -213,7 +292,7 @@ export default function PathScreen() {
     }
   };
 
-  // ─── Loading ───
+  // ── Loading ──
   if (loading) {
     return (
       <View style={styles.center}>
@@ -223,7 +302,7 @@ export default function PathScreen() {
     );
   }
 
-  // ─── Error ───
+  // ── Error ──
   if (error || !path) {
     return (
       <View style={styles.center}>
@@ -235,15 +314,18 @@ export default function PathScreen() {
     );
   }
 
-  // ─── Build layout ───
-  const nodes = buildPathNodes(path.units);
-  const connectors = buildConnectorPaths(nodes);
+  // ── Build layout ──
+  const nodes = buildPathLayout(path.units);
+  const lessonNodes = nodes.filter(
+    (n): n is LessonNode => n.type === "lesson"
+  );
+  const { fullPath, activePath } = buildTrailPaths(lessonNodes);
   const totalHeight =
-    nodes.length > 0 ? nodes[nodes.length - 1].y + VERTICAL_GAP : 400;
+    nodes.length > 0 ? nodes[nodes.length - 1].y + VERTICAL_GAP + 40 : 400;
 
   return (
     <View style={styles.container}>
-      {/* ── Header ── */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -251,13 +333,15 @@ export default function PathScreen() {
         >
           <Text style={styles.backButtonText}>{"\u2190"} Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{path.topicName}</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {path.topicName}
+        </Text>
         <View style={styles.xpBadge}>
           <Text style={styles.xpText}>{path.totalXPEarned} XP</Text>
         </View>
       </View>
 
-      {/* ── Start Session ── */}
+      {/* Start Session */}
       <TouchableOpacity
         style={[
           styles.sessionButton,
@@ -270,91 +354,139 @@ export default function PathScreen() {
         {starting ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.sessionButtonText}>{"\u25B6"} Start Session</Text>
+          <Text style={styles.sessionButtonText}>
+            {"\u25B6"} Start Session
+          </Text>
         )}
       </TouchableOpacity>
 
-      {/* ── Winding Path ── */}
+      {/* Winding Path */}
       <ScrollView
-        contentContainerStyle={{ height: totalHeight + 60 }}
+        contentContainerStyle={{ height: totalHeight }}
         showsVerticalScrollIndicator={false}
       >
-        {/* SVG curved connectors */}
+        {/* SVG trail layers */}
         <Svg
           width={SCREEN_WIDTH}
-          height={totalHeight + 60}
+          height={totalHeight}
           style={StyleSheet.absoluteFill}
         >
-          {connectors.map((conn, i) => (
+          {/* Layer 1: Full trail shadow (widest, darkest) */}
+          {fullPath ? (
             <SvgPath
-              key={i}
-              d={conn.d}
-              stroke={conn.color}
-              strokeWidth={4}
+              d={fullPath}
+              stroke="#1A2E35"
+              strokeWidth={TRAIL_SHADOW_WIDTH}
               fill="none"
               strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          ))}
+          ) : null}
+          {/* Layer 2: Full trail (gray) */}
+          {fullPath ? (
+            <SvgPath
+              d={fullPath}
+              stroke={Colors.border}
+              strokeWidth={TRAIL_WIDTH}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : null}
+          {/* Layer 3: Active trail shadow */}
+          {activePath ? (
+            <SvgPath
+              d={activePath}
+              stroke="#449B02"
+              strokeWidth={TRAIL_SHADOW_WIDTH}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : null}
+          {/* Layer 4: Active trail (green) */}
+          {activePath ? (
+            <SvgPath
+              d={activePath}
+              stroke="#58CC02"
+              strokeWidth={TRAIL_WIDTH}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : null}
         </Svg>
 
-        {/* Render each node */}
+        {/* Render nodes */}
         {nodes.map((node) => {
           // ── Unit banner ──
-          if (node.type === "unit-banner") {
+          if (node.type === "banner") {
             return (
               <View
-                key={`unit-${node.unitIndex}`}
+                key={`banner-${node.unitIndex}`}
                 style={[
                   styles.unitBanner,
-                  {
-                    top: node.y - UNIT_BANNER_HEIGHT / 2,
-                    left: 20,
-                    right: 20,
-                  },
-                  node.unitCompleted === true && styles.unitBannerCompleted,
-                  node.unitLocked === true && styles.unitBannerLocked,
+                  { top: node.y },
+                  node.unitLocked && styles.unitBannerLocked,
                 ]}
               >
-                <Text style={styles.unitBannerIcon}>
-                  {node.unitCompleted
-                    ? "\uD83C\uDFC6"
-                    : node.unitLocked
-                    ? "\uD83D\uDD12"
-                    : "\uD83D\uDCDA"}
-                </Text>
-                <View style={styles.unitBannerTextWrap}>
-                  <Text style={styles.unitBannerLabel}>
-                    Unit {(node.unitIndex ?? 0) + 1}
+                <View
+                  style={[
+                    styles.bannerPill,
+                    node.unitCompleted && styles.bannerPillCompleted,
+                    node.unitLocked && styles.bannerPillLocked,
+                  ]}
+                >
+                  <Text style={styles.bannerIcon}>
+                    {node.unitCompleted
+                      ? "\uD83C\uDFC6"
+                      : node.unitLocked
+                      ? "\uD83D\uDD12"
+                      : "\uD83D\uDCDA"}
                   </Text>
-                  <Text style={styles.unitBannerName} numberOfLines={1}>
-                    {node.unitName}
+                  <Text style={styles.bannerText}>
+                    Unit {node.unitIndex + 1} {"\u2014"} {node.unitName}
                   </Text>
                 </View>
               </View>
             );
           }
 
-          // ── Lesson node ──
-          const lesson = node.lesson!;
-          const isCompleted = lesson.isCompleted;
+          // ── Lesson node (3D button) ──
+          const lesson = node.lesson;
+          const colors = getNodeColors(lesson);
           const isCurrent = lesson.isCurrent;
-          const isLocked = lesson.isLocked;
 
-          const bgColor = isCompleted
-            ? Colors.correct
-            : isCurrent
-            ? Colors.primary
-            : isLocked
-            ? Colors.surfaceLight
-            : Colors.surface;
-
-          const borderColor = isCompleted
-            ? Colors.correct
-            : isCurrent
-            ? "#7CE830"
-            : isLocked
-            ? Colors.border
-            : Colors.border;
+          const nodeButton = (
+            <View style={styles.nodeButtonOuter}>
+              {/* 3D shadow disk (sits behind, offset down) */}
+              <View
+                style={[
+                  styles.nodeShadowDisk,
+                  { backgroundColor: colors.shadow },
+                ]}
+              />
+              {/* Main disk */}
+              <View
+                style={[
+                  styles.nodeMainDisk,
+                  {
+                    backgroundColor: colors.bg,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                {lesson.isLocked ? (
+                  <Text style={styles.lockIcon}>{"\uD83D\uDD12"}</Text>
+                ) : (
+                  <StarIcon
+                    filled={lesson.isCompleted || lesson.isCurrent}
+                    size={32}
+                  />
+                )}
+              </View>
+            </View>
+          );
 
           return (
             <View
@@ -362,31 +494,23 @@ export default function PathScreen() {
               style={[
                 styles.nodeWrapper,
                 {
-                  top: node.y - NODE_RADIUS,
+                  top: node.y - NODE_RADIUS - SHADOW_DEPTH / 2,
                   left: node.x - NODE_RADIUS,
                 },
               ]}
             >
               {/* Glow ring for current */}
-              {isCurrent ? <View style={styles.glowRing} /> : null}
+              {isCurrent && <View style={styles.glowRing} />}
 
-              {/* Circle */}
-              <View
-                style={[
-                  styles.nodeCircle,
-                  { backgroundColor: bgColor, borderColor: borderColor },
-                  isLocked && styles.nodeLocked,
-                ]}
-              >
-                {isLocked ? (
-                  <Text style={styles.lockIcon}>{"\uD83D\uDD12"}</Text>
-                ) : (
-                  <StarIcon filled={isCompleted || isCurrent} size={30} />
-                )}
-              </View>
+              {/* Node (bouncing if current) */}
+              {isCurrent ? (
+                <BouncingNode>{nodeButton}</BouncingNode>
+              ) : (
+                nodeButton
+              )}
 
               {/* Label */}
-              {!isLocked ? (
+              {!lesson.isLocked && (
                 <Text
                   style={[
                     styles.nodeLabel,
@@ -396,17 +520,15 @@ export default function PathScreen() {
                 >
                   {lesson.name}
                 </Text>
-              ) : null}
+              )}
 
               {/* Crown dots */}
-              {lesson.crowns > 0 ? (
-                <CrownDots count={lesson.crowns} />
-              ) : null}
+              {lesson.crowns > 0 && <CrownDots count={lesson.crowns} />}
 
-              {/* Best score */}
-              {lesson.bestScore > 0 && !isLocked ? (
+              {/* Score */}
+              {lesson.bestScore > 0 && !lesson.isLocked && (
                 <Text style={styles.scoreLabel}>{lesson.bestScore}%</Text>
-              ) : null}
+              )}
             </View>
           );
         })}
@@ -470,38 +592,40 @@ const styles = StyleSheet.create({
   sessionButtonDisabled: { opacity: 0.6 },
   sessionButtonText: { color: "#fff", fontSize: 17, fontWeight: "800" },
 
-  // Unit banner (absolute)
+  // Unit banner
   unitBanner: {
     position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 10,
+    alignItems: "center",
+  },
+  unitBannerLocked: { opacity: 0.5 },
+  bannerPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
+    backgroundColor: "#58CC02",
+    borderRadius: 20,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    zIndex: 10,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  unitBannerCompleted: { borderColor: Colors.correct },
-  unitBannerLocked: { borderColor: Colors.border, opacity: 0.5 },
-  unitBannerIcon: { fontSize: 22, marginRight: 10 },
-  unitBannerTextWrap: { flex: 1 },
-  unitBannerLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Colors.textMuted,
+  bannerPillCompleted: { backgroundColor: Colors.gold },
+  bannerPillLocked: { backgroundColor: "#3C3C3C" },
+  bannerIcon: { fontSize: 18, marginRight: 8 },
+  bannerText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
     textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  unitBannerName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Colors.text,
-    marginTop: 1,
+    letterSpacing: 0.5,
   },
 
-  // Node wrapper (absolute)
+  // Node wrapper (absolute positioned)
   nodeWrapper: {
     position: "absolute",
     width: NODE_SIZE,
@@ -509,34 +633,47 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
 
-  // Glow ring behind current node
-  glowRing: {
-    position: "absolute",
-    width: NODE_SIZE + 16,
-    height: NODE_SIZE + 16,
-    borderRadius: (NODE_SIZE + 16) / 2,
-    backgroundColor: "rgba(88, 204, 2, 0.2)",
-    top: -8,
-    left: -8,
-    zIndex: -1,
+  // 3D button container
+  nodeButtonOuter: {
+    width: NODE_SIZE,
+    height: NODE_SIZE + SHADOW_DEPTH,
+    alignItems: "center",
   },
 
-  // Circle node
-  nodeCircle: {
+  // Shadow disk (bottom layer — 3D depth effect)
+  nodeShadowDisk: {
+    position: "absolute",
+    bottom: 0,
     width: NODE_SIZE,
     height: NODE_SIZE,
     borderRadius: NODE_RADIUS,
-    borderWidth: 4,
+  },
+
+  // Main disk (top layer)
+  nodeMainDisk: {
+    position: "absolute",
+    top: 0,
+    width: NODE_SIZE,
+    height: NODE_SIZE,
+    borderRadius: NODE_RADIUS,
+    borderWidth: 3,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
-  nodeLocked: { opacity: 0.4 },
-  lockIcon: { fontSize: 22 },
+
+  // Glow ring for current node
+  glowRing: {
+    position: "absolute",
+    width: NODE_SIZE + 20,
+    height: NODE_SIZE + 20 + SHADOW_DEPTH,
+    borderRadius: (NODE_SIZE + 20) / 2,
+    backgroundColor: "rgba(88, 204, 2, 0.15)",
+    top: -10,
+    left: -10,
+    zIndex: -1,
+  },
+
+  lockIcon: { fontSize: 26 },
 
   // Label below node
   nodeLabel: {
@@ -544,13 +681,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.textSecondary,
     textAlign: "center",
-    marginTop: 6,
-    width: NODE_SIZE + 30,
+    marginTop: 4,
+    width: NODE_SIZE + 40,
   },
   nodeLabelCurrent: { color: Colors.text, fontWeight: "800" },
 
   // Crown dots
-  crownDots: { flexDirection: "row", marginTop: 4, gap: 3 },
+  crownDots: { flexDirection: "row", marginTop: 3, gap: 3 },
   crownDot: {
     width: 8,
     height: 8,
