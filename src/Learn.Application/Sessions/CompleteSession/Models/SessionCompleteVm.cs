@@ -22,4 +22,5 @@ public record SessionCompleteVm
     public double LevelProgress { get; init; }
     public int CurrentStreak { get; init; }
     public int ReviewItemsCreated { get; init; }
+    public List<string>? WeakAreas { get; init; }  // null unless unit advanced
 }

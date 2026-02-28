@@ -6,62 +6,53 @@ public class ReviewItem : CreatedEntity<ReviewItem>
     public Guid ExerciseId { get; set; }
     public DateTime NextReviewDate { get; set; }
     public int Interval { get; set; } = 1;
+
+    // FSRS-lite fields
+    public double Stability { get; set; } = 1.0;   // Days to 90% retention
+    public double Difficulty { get; set; } = 5.0;  // 1.0 (easy) to 10.0 (hard)
+
+    // Kept for EF compatibility — no longer written to
     public double EaseFactor { get; set; } = 2.5;
     public int RepetitionCount { get; set; }
 
     public Exercise Exercise { get; set; } = null!;
 
-    public static ReviewItem Create(string userId, Guid exerciseId)
+    public static ReviewItem Create(string userId, Guid exerciseId) => new()
     {
-        return new ReviewItem
-        {
-            UserId = userId,
-            ExerciseId = exerciseId,
-            NextReviewDate = DateTime.UtcNow.AddDays(1),
-            Interval = 1,
-            EaseFactor = 2.5,
-            RepetitionCount = 0
-        };
-    }
+        UserId = userId,
+        ExerciseId = exerciseId,
+        NextReviewDate = DateTime.UtcNow.AddDays(1),
+        Interval = 1,
+        Stability = 1.0,
+        Difficulty = 5.0,
+        EaseFactor = 2.5,
+        RepetitionCount = 0
+    };
 
     /// <summary>
-    /// SM-2 spaced repetition algorithm.
-    /// Quality: 0-5 scale mapped from score (0-100).
+    /// FSRS-lite spaced repetition algorithm.
     /// </summary>
     public void RecordReview(int score)
     {
-        int quality = MapScoreToQuality(score);
+        int grade = MapScoreToGrade(score);
 
-        if (quality >= 3)
+        double daysSinceReview = Math.Max(1, (DateTime.UtcNow - (ModifiedDate ?? CreatedDate)).TotalDays);
+        double retrievability = Math.Exp(Math.Log(0.9) * daysSinceReview / Stability);
+
+        if (grade >= 3)
         {
-            RepetitionCount++;
-
-            if (RepetitionCount == 1)
-            {
-                Interval = 1;
-            }
-            else if (RepetitionCount == 2)
-            {
-                Interval = 6;
-            }
-            else
-            {
-                Interval = (int)Math.Round(Interval * EaseFactor);
-            }
+            // Successful recall: stability grows (desirable difficulty effect)
+            Stability *= 1 + 2.5 * (1 - retrievability) * (11 - Difficulty) / 10.0;
         }
         else
         {
-            RepetitionCount = 0;
-            Interval = 1;
+            // Lapse: reduce stability by half, not a full reset like SM-2
+            Stability = Math.Max(1.0, Stability * 0.5);
         }
 
-        EaseFactor = EaseFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+        Difficulty = Math.Clamp(Difficulty + 0.1 - (grade - 3) * 0.08, 1.0, 10.0);
 
-        if (EaseFactor < 1.3)
-        {
-            EaseFactor = 1.3;
-        }
-
+        Interval = (int)Math.Ceiling(Stability);
         NextReviewDate = DateTime.UtcNow.AddDays(Interval);
     }
 
@@ -70,7 +61,7 @@ public class ReviewItem : CreatedEntity<ReviewItem>
         return DateTime.UtcNow.Date >= NextReviewDate.Date;
     }
 
-    private static int MapScoreToQuality(int score)
+    private static int MapScoreToGrade(int score)
     {
         return score switch
         {

@@ -56,9 +56,13 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson1_3 = Lesson.Create(unit1.Id, "Gulf of Tonkin & Escalation", "The incident that transformed US involvement from advisory to combat.", 2, 8);
         lesson1_3.GenerationContext = "Gulf of Tonkin incident (1964), Gulf of Tonkin Resolution, Operation Rolling Thunder, deployment of ground troops. Focus on how a contested naval incident led to massive military escalation.";
 
+        Lesson lesson1_review = Lesson.Create(unit1.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson1_review.GenerationContext = "This is a review lesson. Generate questions that synthesise and compare concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: French colonial legacy, domino theory, Gulf of Tonkin, US escalation from advisors to combat troops.";
+
         unit1.Lessons.Add(lesson1_1);
         unit1.Lessons.Add(lesson1_2);
         unit1.Lessons.Add(lesson1_3);
+        unit1.Lessons.Add(lesson1_review);
 
         // Unit 2: Key Turning Points
         Unit unit2 = Unit.Create(topic.Id, "Key Turning Points", "Major events that shifted the course and perception of the war.", 1);
@@ -72,9 +76,13 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson2_3 = Lesson.Create(unit2.Id, "Cambodian Incursion & Kent State", "Widening war and domestic crisis.", 2, 8);
         lesson2_3.GenerationContext = "Nixon's Cambodia incursion (1970), Kent State shootings, expansion of anti-war protest, congressional pushback. Focus on how military decisions abroad triggered political crisis at home.";
 
+        Lesson lesson2_review = Lesson.Create(unit2.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson2_review.GenerationContext = "This is a review lesson. Generate questions that synthesise and compare concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: Tet Offensive strategic paradox, My Lai and moral accountability, Cambodia incursion and domestic backlash.";
+
         unit2.Lessons.Add(lesson2_1);
         unit2.Lessons.Add(lesson2_2);
         unit2.Lessons.Add(lesson2_3);
+        unit2.Lessons.Add(lesson2_review);
 
         // Unit 3: Home Front & Media
         Unit unit3 = Unit.Create(topic.Id, "Home Front & Media", "How the war was perceived, debated, and protested at home.", 2);
@@ -88,9 +96,13 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson3_3 = Lesson.Create(unit3.Id, "The Draft & Social Division", "How conscription deepened class and racial divides.", 2, 8);
         lesson3_3.GenerationContext = "Selective Service system, deferments and inequality, disproportionate impact on minorities and working class, draft lottery (1969), Muhammad Ali's refusal. Focus on social justice dimensions and how the draft system reflected broader societal inequities.";
 
+        Lesson lesson3_review = Lesson.Create(unit3.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson3_review.GenerationContext = "This is a review lesson. Generate questions that synthesise and compare concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: media's role in shaping opinion, anti-war movement strategies and effectiveness, draft inequities and social divisions.";
+
         unit3.Lessons.Add(lesson3_1);
         unit3.Lessons.Add(lesson3_2);
         unit3.Lessons.Add(lesson3_3);
+        unit3.Lessons.Add(lesson3_review);
 
         // Unit 4: Aftermath & Legacy
         Unit unit4 = Unit.Create(topic.Id, "Aftermath & Legacy", "The fall of Saigon, veterans' experience, and lasting geopolitical impact.", 3);
@@ -104,15 +116,61 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson4_3 = Lesson.Create(unit4.Id, "Lessons & Legacy", "How Vietnam reshaped American foreign policy and military strategy.", 2, 10);
         lesson4_3.GenerationContext = "Vietnam Syndrome, War Powers Act (1973), Powell Doctrine, all-volunteer force, impact on subsequent conflicts (Gulf War, Iraq/Afghanistan). Focus on institutional changes, the 'lessons of Vietnam' debate, and why this conflict remains politically and culturally significant.";
 
+        Lesson lesson4_review = Lesson.Create(unit4.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson4_review.GenerationContext = "This is a review lesson. Generate questions that synthesise and compare concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: Paris Peace Accords failure, veterans' experiences and societal reintegration, lasting geopolitical and military doctrine changes.";
+
         unit4.Lessons.Add(lesson4_1);
         unit4.Lessons.Add(lesson4_2);
         unit4.Lessons.Add(lesson4_3);
+        unit4.Lessons.Add(lesson4_review);
 
-        topic.TotalUnits = 4;
+        // Unit 5: The Air War & Naval Operations
+        Unit unit5 = Unit.Create(topic.Id, "The Air War & Naval Operations", "Strategic bombing campaigns, carrier operations, and environmental warfare.", 4);
+
+        Lesson lesson5_1 = Lesson.Create(unit5.Id, "Rolling Thunder & Strategic Bombing", "The sustained bombing campaign against North Vietnam.", 0, 8);
+        lesson5_1.GenerationContext = "Operation Rolling Thunder (1965–1968), targeting philosophy, restricted zones, bombing halt debates, effectiveness assessment. Focus on the strategic rationale, the political constraints on targeting, and why the campaign failed to break North Vietnamese resolve.";
+
+        Lesson lesson5_2 = Lesson.Create(unit5.Id, "Carrier Operations in the Gulf of Tonkin", "The US Navy's role in projecting airpower.", 1, 8);
+        lesson5_2.GenerationContext = "US Navy carrier task forces, Yankee Station and Dixie Station, carrier-launched strike missions, naval gunfire support, Gulf of Tonkin patrols. Focus on how naval aviation integrated with the broader air campaign and the logistical scale of sustained carrier operations.";
+
+        Lesson lesson5_3 = Lesson.Create(unit5.Id, "Operation Ranch Hand & Defoliation", "Chemical herbicides and environmental warfare.", 2, 8);
+        lesson5_3.GenerationContext = "Operation Ranch Hand, Agent Orange and dioxin contamination, defoliation of the Ho Chi Minh Trail, crop destruction programs, long-term health consequences for veterans and Vietnamese civilians. Focus on the strategic intent, ethical controversy, and enduring environmental and health legacy.";
+
+        Lesson lesson5_review = Lesson.Create(unit5.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson5_review.GenerationContext = "This is a review lesson. Generate questions that synthesise and compare concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: strategic bombing effectiveness and political constraints, naval airpower projection, Agent Orange and the ethics of environmental warfare.";
+
+        unit5.Lessons.Add(lesson5_1);
+        unit5.Lessons.Add(lesson5_2);
+        unit5.Lessons.Add(lesson5_3);
+        unit5.Lessons.Add(lesson5_review);
+
+        // Unit 6: Peace Negotiations & American Withdrawal
+        Unit unit6 = Unit.Create(topic.Id, "Peace Negotiations & American Withdrawal", "The diplomacy, Vietnamization strategy, and final collapse.", 5);
+
+        Lesson lesson6_1 = Lesson.Create(unit6.Id, "The Paris Peace Talks", "Years of diplomatic maneuvering before a ceasefire.", 0, 8);
+        lesson6_1.GenerationContext = "Paris Peace Talks (1968–1973), key negotiators (Kissinger, Le Duc Tho), sticking points over POWs and territorial control, Christmas Bombing (Operation Linebacker II), Nobel Peace Prize controversy. Focus on why negotiations took five years, what each side wanted, and what the agreement actually achieved.";
+
+        Lesson lesson6_2 = Lesson.Create(unit6.Id, "Vietnamization & Nixon Doctrine", "Shifting the war's burden to South Vietnamese forces.", 1, 8);
+        lesson6_2.GenerationContext = "Nixon Doctrine, Vietnamization program, ARVN capability building, drawdown of US troops, South Vietnamese performance in Lam Son 719 (1971). Focus on evaluating whether Vietnamization was a viable strategy or a face-saving withdrawal, and why South Vietnam ultimately collapsed.";
+
+        Lesson lesson6_3 = Lesson.Create(unit6.Id, "The Fall of Saigon", "The final collapse and its immediate aftermath.", 2, 10);
+        lesson6_3.GenerationContext = "North Vietnamese Spring Offensive (1975), ARVN collapse, congressional refusal of emergency aid, Operation Frequent Wind evacuation, refugee crisis, fate of South Vietnamese allies left behind. Focus on the sequence of military and political events, the human tragedy, and what the fall meant for US credibility in the Cold War.";
+
+        Lesson lesson6_review = Lesson.Create(unit6.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson6_review.GenerationContext = "This is a review lesson. Generate questions that synthesise and compare concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: Paris Peace Talks and why a lasting peace proved impossible, Vietnamization's strategic logic and failures, the Fall of Saigon and its Cold War significance.";
+
+        unit6.Lessons.Add(lesson6_1);
+        unit6.Lessons.Add(lesson6_2);
+        unit6.Lessons.Add(lesson6_3);
+        unit6.Lessons.Add(lesson6_review);
+
+        topic.TotalUnits = 6;
         topic.Units.Add(unit1);
         topic.Units.Add(unit2);
         topic.Units.Add(unit3);
         topic.Units.Add(unit4);
+        topic.Units.Add(unit5);
+        topic.Units.Add(unit6);
 
         _db.Topics.Add(topic);
     }
@@ -141,9 +199,13 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson1_3 = Lesson.Create(unit1.Id, "Duty to Clients & Fair Dealing", "Fiduciary duty, suitability, and fair treatment of all clients.", 2, 8);
         lesson1_3.GenerationContext = "Fiduciary duty, suitability requirements, fair dealing vs equal treatment, soft dollar arrangements, priority of transactions. Focus on practical application — given a scenario, identify the appropriate ethical action.";
 
+        Lesson lesson1_review = Lesson.Create(unit1.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson1_review.GenerationContext = "This is a review lesson. Generate scenario-based questions that synthesise concepts across the whole unit. Prioritise analytical and evaluative questions over factual recall. Cover any areas where a student might have gaps: Code of Ethics components, Standards of Professional Conduct application, GIPS compliance, fiduciary duty and fair dealing in complex scenarios.";
+
         unit1.Lessons.Add(lesson1_1);
         unit1.Lessons.Add(lesson1_2);
         unit1.Lessons.Add(lesson1_3);
+        unit1.Lessons.Add(lesson1_review);
 
         // Unit 2: Quantitative Methods
         Unit unit2 = Unit.Create(topic.Id, "Quantitative Methods", "Time value of money, statistics, and probability — the mathematical toolkit for finance.", 1);
@@ -157,9 +219,13 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson2_3 = Lesson.Create(unit2.Id, "Regression & Correlation", "Understanding relationships between financial variables.", 2, 8);
         lesson2_3.GenerationContext = "Simple linear regression, R-squared, correlation coefficient, standard error, t-statistics, ANOVA. Focus on interpreting regression output, understanding limitations, and applying to financial analysis (e.g., beta estimation, factor models).";
 
+        Lesson lesson2_review = Lesson.Create(unit2.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson2_review.GenerationContext = "This is a review lesson. Generate calculation-based and interpretive questions that synthesise concepts across the whole unit. Prioritise applied problems over definitions. Cover any areas where a student might have gaps: TVM in multi-step scenarios, statistical inference, regression interpretation, and connecting these tools to investment decision-making.";
+
         unit2.Lessons.Add(lesson2_1);
         unit2.Lessons.Add(lesson2_2);
         unit2.Lessons.Add(lesson2_3);
+        unit2.Lessons.Add(lesson2_review);
 
         // Unit 3: Financial Statement Analysis
         Unit unit3 = Unit.Create(topic.Id, "Financial Statement Analysis", "Reading, analysing, and interpreting financial statements for investment decisions.", 2);
@@ -173,9 +239,13 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson3_3 = Lesson.Create(unit3.Id, "Financial Ratios & Quality", "Ratio analysis framework and assessing earnings quality.", 2, 10);
         lesson3_3.GenerationContext = "Liquidity ratios (current, quick), profitability ratios (ROE, ROA, DuPont decomposition), leverage ratios, efficiency ratios (turnover), earnings quality indicators, Beneish M-Score concept. Focus on using ratios to make investment decisions and detect potential problems.";
 
+        Lesson lesson3_review = Lesson.Create(unit3.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson3_review.GenerationContext = "This is a review lesson. Generate scenario-based questions using provided financial data to synthesise concepts across the whole unit. Prioritise cross-statement analysis and ratio interpretation over isolated definitions. Cover any areas where a student might have gaps: revenue quality assessment, cash flow vs earnings divergence, DuPont decomposition, and earnings quality red flags.";
+
         unit3.Lessons.Add(lesson3_1);
         unit3.Lessons.Add(lesson3_2);
         unit3.Lessons.Add(lesson3_3);
+        unit3.Lessons.Add(lesson3_review);
 
         // Unit 4: Equity & Fixed Income
         Unit unit4 = Unit.Create(topic.Id, "Equity & Fixed Income", "Valuation principles for stocks and bonds.", 3);
@@ -189,15 +259,61 @@ public class TopicCatalogSeeder : ITopicCatalogSeeder
         Lesson lesson4_3 = Lesson.Create(unit4.Id, "Portfolio Theory Basics", "Risk-return tradeoff, diversification, and the efficient frontier.", 2, 10);
         lesson4_3.GenerationContext = "Markowitz portfolio theory, expected return/variance of a portfolio, correlation and diversification benefits, efficient frontier, Capital Market Line, CAPM, systematic vs unsystematic risk, beta. Focus on why diversification works and how to think about risk at the portfolio level.";
 
+        Lesson lesson4_review = Lesson.Create(unit4.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson4_review.GenerationContext = "This is a review lesson. Generate CFA exam-style scenario questions that synthesise concepts across the whole unit. Prioritise model selection reasoning and risk measurement application. Cover any areas where a student might have gaps: choosing between DDM and FCF models, bond duration and convexity in price change estimation, CAPM assumptions and beta interpretation.";
+
         unit4.Lessons.Add(lesson4_1);
         unit4.Lessons.Add(lesson4_2);
         unit4.Lessons.Add(lesson4_3);
+        unit4.Lessons.Add(lesson4_review);
 
-        topic.TotalUnits = 4;
+        // Unit 5: Derivatives & Alternative Investments
+        Unit unit5 = Unit.Create(topic.Id, "Derivatives & Alternative Investments", "Forwards, futures, options, swaps, and the landscape of alternative asset classes.", 4);
+
+        Lesson lesson5_1 = Lesson.Create(unit5.Id, "Futures & Forwards Fundamentals", "Pricing, hedging, and speculating with derivative contracts.", 0, 10);
+        lesson5_1.GenerationContext = "Forward contracts vs futures (standardisation, margin, mark-to-market), cost of carry pricing model, basis risk, hedging with futures (currency, commodity, equity index), contango vs backwardation. Focus on calculating forward prices and understanding hedge ratios in practical scenarios.";
+
+        Lesson lesson5_2 = Lesson.Create(unit5.Id, "Options Pricing & Greeks", "Understanding option value and its sensitivities.", 1, 10);
+        lesson5_2.GenerationContext = "Call and put payoff diagrams, intrinsic vs time value, Black-Scholes model inputs, put-call parity, option Greeks (delta, gamma, vega, theta, rho). Focus on intuitive understanding of what drives option prices and how Greeks measure sensitivity, with CFA-style scenario questions.";
+
+        Lesson lesson5_3 = Lesson.Create(unit5.Id, "Swaps & Credit Derivatives", "Interest rate swaps, currency swaps, and credit default swaps.", 2, 8);
+        lesson5_3.GenerationContext = "Plain vanilla interest rate swaps, fixed vs floating legs, swap valuation, currency swaps and FX risk management, credit default swaps (CDS) mechanics and credit risk transfer. Focus on why counterparties enter swaps, how cash flows are determined, and the role of CDS in the 2008 financial crisis.";
+
+        Lesson lesson5_review = Lesson.Create(unit5.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson5_review.GenerationContext = "This is a review lesson. Generate CFA exam-style scenario questions that synthesise concepts across the whole unit. Prioritise pricing calculations and hedging strategy analysis. Cover any areas where a student might have gaps: forward pricing vs futures settlement, option Greeks in portfolio management, swap cash flow determination and use cases.";
+
+        unit5.Lessons.Add(lesson5_1);
+        unit5.Lessons.Add(lesson5_2);
+        unit5.Lessons.Add(lesson5_3);
+        unit5.Lessons.Add(lesson5_review);
+
+        // Unit 6: Portfolio Management & Risk
+        Unit unit6 = Unit.Create(topic.Id, "Portfolio Management & Risk", "Constructing optimal portfolios and measuring risk-adjusted performance.", 5);
+
+        Lesson lesson6_1 = Lesson.Create(unit6.Id, "Modern Portfolio Theory & Efficient Frontier", "Diversification, portfolio variance, and the efficient frontier.", 0, 10);
+        lesson6_1.GenerationContext = "Markowitz mean-variance optimisation, two-asset portfolio variance formula, correlation's role in diversification, minimum variance portfolio, efficient frontier construction, investor utility and risk aversion. Focus on why adding low-correlation assets reduces portfolio risk and how to identify efficient portfolios.";
+
+        Lesson lesson6_2 = Lesson.Create(unit6.Id, "Capital Asset Pricing Model", "Systematic risk, beta, and the Security Market Line.", 1, 10);
+        lesson6_2.GenerationContext = "CAPM assumptions, Security Market Line (SML) vs Capital Market Line (CML), beta as systematic risk measure, expected return calculation, alpha (Jensen's alpha), portfolio beta. Focus on applying CAPM to price assets, identify undervalued/overvalued securities, and understand what CAPM does and does not capture.";
+
+        Lesson lesson6_3 = Lesson.Create(unit6.Id, "Risk-Adjusted Performance Measures", "Evaluating portfolio performance beyond raw returns.", 2, 10);
+        lesson6_3.GenerationContext = "Sharpe ratio, Treynor ratio, Jensen's alpha, information ratio, M-squared. When to use each measure (total vs systematic risk contexts), limitations of each metric, comparing portfolios with different risk profiles. Focus on selecting the appropriate measure given the investment mandate and interpreting results in CFA exam scenarios.";
+
+        Lesson lesson6_review = Lesson.Create(unit6.Id, "Unit Review", "Consolidation session reviewing the key concepts from this unit.", 3, 10);
+        lesson6_review.GenerationContext = "This is a review lesson. Generate CFA exam-style scenario questions that synthesise concepts across the whole unit and connect back to earlier units where appropriate. Prioritise portfolio construction decisions and performance evaluation over isolated formula recall. Cover any areas where a student might have gaps: efficient frontier and optimal portfolio selection, CAPM in asset pricing and security selection, choosing and interpreting risk-adjusted performance measures.";
+
+        unit6.Lessons.Add(lesson6_1);
+        unit6.Lessons.Add(lesson6_2);
+        unit6.Lessons.Add(lesson6_3);
+        unit6.Lessons.Add(lesson6_review);
+
+        topic.TotalUnits = 6;
         topic.Units.Add(unit1);
         topic.Units.Add(unit2);
         topic.Units.Add(unit3);
         topic.Units.Add(unit4);
+        topic.Units.Add(unit5);
+        topic.Units.Add(unit6);
 
         _db.Topics.Add(topic);
     }

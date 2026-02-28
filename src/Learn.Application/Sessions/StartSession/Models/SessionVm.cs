@@ -24,4 +24,5 @@ public record SessionExerciseVm
     public int ExerciseType { get; init; }
     public int DifficultyLevel { get; init; }
     public bool IsReview { get; init; }
+    public bool IsInterleaved { get; init; }
 }

@@ -103,6 +103,7 @@ public class CompleteSessionCommandHandler : IRequestHandler<CompleteSessionComm
 
         bool lessonComplete = passedExercises >= totalExercises && totalExercises > 0;
         bool unitAdvanced = false;
+        List<string>? weakAreas = null;
 
         if (lessonComplete)
         {
@@ -121,6 +122,22 @@ public class CompleteSessionCommandHandler : IRequestHandler<CompleteSessionComm
             }
 
             progress.RecordAttempt(totalScore / Math.Max(command.Results.Count, 1));
+
+            // When unit advances, surface weak areas from the completed unit
+            if (unitAdvanced)
+            {
+                List<string> weakLessons = await _db.ExerciseAttempts
+                    .Where(a => a.UserId == userId
+                             && a.Exercise.Lesson.UnitId == currentUnit.Id
+                             && a.Score < 75)
+                    .GroupBy(a => a.Exercise.Lesson.Name)
+                    .OrderByDescending(g => g.Count())
+                    .Take(3)
+                    .Select(g => g.Key)
+                    .ToListAsync(cancellationToken);
+
+                weakAreas = weakLessons.Count > 0 ? weakLessons : null;
+            }
         }
 
         // Update streak
@@ -170,7 +187,8 @@ public class CompleteSessionCommandHandler : IRequestHandler<CompleteSessionComm
             LevelTitle = levelTitle,
             LevelProgress = levelProgress,
             CurrentStreak = streak?.CurrentStreak ?? 0,
-            ReviewItemsCreated = reviewItemsCreated
+            ReviewItemsCreated = reviewItemsCreated,
+            WeakAreas = weakAreas
         };
     }
 }

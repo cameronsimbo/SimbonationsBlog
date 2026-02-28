@@ -23,6 +23,7 @@ interface SessionExercise {
   exerciseType: number;
   difficultyLevel: number;
   isReview: boolean;
+  isInterleaved: boolean;
 }
 
 interface SessionData {
@@ -61,6 +62,7 @@ interface SessionComplete {
   levelProgress: number;
   currentStreak: number;
   reviewItemsCreated: number;
+  weakAreas: string[] | null;
 }
 
 type Phase = "exercise" | "feedback" | "complete";
@@ -251,6 +253,15 @@ export default function SessionScreen() {
                 {data.reviewItemsCreated === 1 ? "" : "s"} added to review
               </Text>
             ) : null}
+
+            {data.unitAdvanced && data.weakAreas && data.weakAreas.length > 0 ? (
+              <View style={s.weakAreasCard}>
+                <Text style={s.weakAreasTitle}>Areas to revisit next unit</Text>
+                {data.weakAreas.map((area, i) => (
+                  <Text key={i} style={s.weakAreasItem}>• {area}</Text>
+                ))}
+              </View>
+            ) : null}
           </>
         ) : null}
 
@@ -367,6 +378,10 @@ export default function SessionScreen() {
           {exercise.isReview ? (
             <View style={s.reviewTag}>
               <Text style={s.reviewTagText}>🔄 Review</Text>
+            </View>
+          ) : exercise.isInterleaved ? (
+            <View style={[s.reviewTag, { backgroundColor: Colors.secondary }]}>
+              <Text style={s.reviewTagText}>🔀 Practice</Text>
             </View>
           ) : null}
         </View>
@@ -680,4 +695,25 @@ const s = StyleSheet.create({
     marginTop: 12,
   },
   completeButtonText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+
+  weakAreasCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  weakAreasTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  weakAreasItem: {
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 22,
+  },
 });

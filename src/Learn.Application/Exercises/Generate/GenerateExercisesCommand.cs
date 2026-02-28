@@ -1,4 +1,4 @@
-using Learn.Application.Exercises.GetByLesson;
+using Learn.Application.Exercises.GetByLesson.Models;
 using MediatR;
 
 namespace Learn.Application.Exercises.Generate;

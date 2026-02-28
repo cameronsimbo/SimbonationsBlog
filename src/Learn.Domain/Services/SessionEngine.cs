@@ -5,18 +5,18 @@ public static class SessionEngine
     public const int ExercisesPerSession = 5;
     public const double ReviewRatio = 0.3;
 
-    public static (int newCount, int reviewCount) CalculateSessionMix(int availableReviewItems)
+    /// <summary>
+    /// Returns (newCount, reviewCount, interleavedCount).
+    /// interleavedCount is 1 when past-lesson exercises are available, else 0.
+    /// </summary>
+    public static (int newCount, int reviewCount, int interleavedCount) CalculateSessionMix(
+        int availableReviewItems, bool hasPastLessonExercises)
     {
-        int reviewCount = (int)Math.Floor(ExercisesPerSession * ReviewRatio);
-
-        if (availableReviewItems < reviewCount)
-        {
-            reviewCount = availableReviewItems;
-        }
-
-        int newCount = ExercisesPerSession - reviewCount;
-
-        return (newCount, reviewCount);
+        int interleavedCount = hasPastLessonExercises ? 1 : 0;
+        int slotsForReview = ExercisesPerSession - interleavedCount;
+        int reviewCount = Math.Min(availableReviewItems, (int)Math.Floor(slotsForReview * ReviewRatio));
+        int newCount = ExercisesPerSession - reviewCount - interleavedCount;
+        return (newCount, reviewCount, interleavedCount);
     }
 
     public static int CalculateSessionXPBonus(int totalScore, int exerciseCount)

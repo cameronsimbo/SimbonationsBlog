@@ -73,7 +73,19 @@ public class StartSessionCommandHandler : IRequestHandler<StartSessionCommand, S
             .Take(SessionEngine.ExercisesPerSession)
             .ToListAsync(cancellationToken);
 
-        (int newCount, int reviewCount) = SessionEngine.CalculateSessionMix(dueReviews.Count);
+        // Query past-lesson exercises for interleaving
+        List<Guid> attemptedExerciseIds = await _db.ExerciseAttempts
+            .Where(a => a.Exercise.Lesson.Unit.TopicId == command.TopicId
+                     && a.UserId == userId
+                     && a.Exercise.LessonId != currentLesson.Id)
+            .Select(a => a.ExerciseId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        bool hasPastLessonExercises = attemptedExerciseIds.Count > 0;
+
+        (int newCount, int reviewCount, int interleavedCount) = SessionEngine.CalculateSessionMix(
+            dueReviews.Count, hasPastLessonExercises);
 
         // Get existing exercises for the current lesson
         // IsHidden is a computed C# property (not a DB column) — inline the condition
@@ -153,7 +165,8 @@ public class StartSessionCommandHandler : IRequestHandler<StartSessionCommand, S
                 Hints = exercise.Hints,
                 ExerciseType = (int)exercise.ExerciseType,
                 DifficultyLevel = (int)exercise.DifficultyLevel,
-                IsReview = false
+                IsReview = false,
+                IsInterleaved = false
             });
         }
 
@@ -169,8 +182,32 @@ public class StartSessionCommandHandler : IRequestHandler<StartSessionCommand, S
                 Hints = review.Exercise.Hints,
                 ExerciseType = (int)review.Exercise.ExerciseType,
                 DifficultyLevel = (int)review.Exercise.DifficultyLevel,
-                IsReview = true
+                IsReview = true,
+                IsInterleaved = false
             });
+        }
+
+        // Add interleaved exercise from a random past lesson
+        if (interleavedCount > 0)
+        {
+            Guid randomId = attemptedExerciseIds[Random.Shared.Next(attemptedExerciseIds.Count)];
+            Exercise? interleavedExercise = await _db.Exercises
+                .FirstOrDefaultAsync(e => e.Id == randomId, cancellationToken);
+
+            if (interleavedExercise is not null)
+            {
+                sessionExercises.Add(new SessionExerciseVm
+                {
+                    ExerciseId = interleavedExercise.Id,
+                    Prompt = interleavedExercise.Prompt,
+                    Context = interleavedExercise.Context,
+                    Hints = interleavedExercise.Hints,
+                    ExerciseType = (int)interleavedExercise.ExerciseType,
+                    DifficultyLevel = (int)interleavedExercise.DifficultyLevel,
+                    IsReview = false,
+                    IsInterleaved = true
+                });
+            }
         }
 
         return new SessionVm
