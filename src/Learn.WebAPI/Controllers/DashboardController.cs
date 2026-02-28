@@ -1,4 +1,5 @@
 using Learn.Application.Progress.GetDashboard;
+using Learn.Application.Progress.GetDashboard.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

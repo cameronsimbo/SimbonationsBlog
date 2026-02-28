@@ -1,4 +1,5 @@
 using Learn.Application.Common.Interfaces;
+using Learn.Application.Leaderboards.GetWeekly.Models;
 using Learn.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

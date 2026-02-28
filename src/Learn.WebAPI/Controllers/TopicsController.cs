@@ -1,8 +1,12 @@
 using Learn.Application.Topics.Create;
 using Learn.Application.Topics.Enroll;
+using Learn.Application.Topics.Enroll.Models;
 using Learn.Application.Topics.Get;
+using Learn.Application.Topics.Get.Models;
 using Learn.Application.Topics.GetAll;
+using Learn.Application.Topics.GetAll.Models;
 using Learn.Application.Progress.GetLearningPath;
+using Learn.Application.Progress.GetLearningPath.Models;
 using Learn.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

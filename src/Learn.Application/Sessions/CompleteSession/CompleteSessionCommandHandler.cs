@@ -1,5 +1,6 @@
 using Learn.Application.Common.Exceptions;
 using Learn.Application.Common.Interfaces;
+using Learn.Application.Sessions.CompleteSession.Models;
 using Learn.Domain.Entities;
 using Learn.Domain.Services;
 using MediatR;

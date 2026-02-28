@@ -1,9 +1,12 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using FluentValidation;
+using FluentValidation.Results;
 using Google.Apis.Auth;
 using Learn.Application.Common.Interfaces;
 using Learn.Domain.Entities;
+using Learn.WebAPI.Controllers.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -18,17 +21,23 @@ public class AuthController : ControllerBase
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly IConfiguration _configuration;
     private readonly ILearnDbContext _db;
+    private readonly IValidator<RegisterRequest> _registerValidator;
+    private readonly IValidator<LoginRequest> _loginValidator;
 
     public AuthController(
         UserManager<IdentityUser> userManager,
         SignInManager<IdentityUser> signInManager,
         IConfiguration configuration,
-        ILearnDbContext db)
+        ILearnDbContext db,
+        IValidator<RegisterRequest> registerValidator,
+        IValidator<LoginRequest> loginValidator)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _db = db;
+        _registerValidator = registerValidator;
+        _loginValidator = loginValidator;
     }
 
     [HttpPost("register")]
@@ -36,6 +45,13 @@ public class AuthController : ControllerBase
         RegisterRequest request,
         CancellationToken cancellationToken = default)
     {
+        ValidationResult validationResult = await _registerValidator.ValidateAsync(request, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return ValidationProblem(validationResult);
+        }
+
         IdentityUser user = new()
         {
             UserName = request.Email,
@@ -46,7 +62,7 @@ public class AuthController : ControllerBase
 
         if (!result.Succeeded)
         {
-            return BadRequest(new { Errors = result.Errors.Select(e => e.Description) });
+            return ValidationProblem(result);
         }
 
         // Create a UserStreak for the new user
@@ -61,11 +77,25 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResultVm>> Login(LoginRequest request)
     {
+        ValidationResult validationResult = await _loginValidator.ValidateAsync(request);
+
+        if (!validationResult.IsValid)
+        {
+            return ValidationProblem(validationResult);
+        }
+
         IdentityUser? user = await _userManager.FindByEmailAsync(request.Email);
 
         if (user is null)
         {
-            return Unauthorized(new { Error = "Invalid email or password." });
+            return Unauthorized(new ValidationProblemDetails(
+                new Dictionary<string, string[]>
+                {
+                    { "Credentials", new[] { "The email or password you entered is incorrect." } }
+                })
+            {
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2"
+            });
         }
 
         Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager
@@ -73,7 +103,14 @@ public class AuthController : ControllerBase
 
         if (!result.Succeeded)
         {
-            return Unauthorized(new { Error = "Invalid email or password." });
+            return Unauthorized(new ValidationProblemDetails(
+                new Dictionary<string, string[]>
+                {
+                    { "Credentials", new[] { "The email or password you entered is incorrect." } }
+                })
+            {
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2"
+            });
         }
 
         AuthResultVm tokenResult = GenerateToken(user);
@@ -89,7 +126,7 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            return Unauthorized(new { Error = "Invalid Google token." });
+            return Unauthorized(new ProblemDetails { Detail = "Invalid Google token." });
         }
 
         try
@@ -106,16 +143,16 @@ public class AuthController : ControllerBase
         }
         catch (InvalidJwtException)
         {
-            return Unauthorized(new { Error = "Invalid Google token." });
+            return Unauthorized(new ProblemDetails { Detail = "Invalid Google token." });
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or HttpRequestException)
         {
-            return Unauthorized(new { Error = "Invalid Google token." });
+            return Unauthorized(new ProblemDetails { Detail = "Invalid Google token." });
         }
 
         if (string.IsNullOrWhiteSpace(payload.Email))
         {
-            return BadRequest(new { Error = "Google account has no email address." });
+            return BadRequest(new ProblemDetails { Detail = "Google account has no email address." });
         }
 
         IdentityUser? user = await _userManager.FindByEmailAsync(payload.Email);
@@ -133,7 +170,7 @@ public class AuthController : ControllerBase
 
             if (!createResult.Succeeded)
             {
-                return BadRequest(new { Errors = createResult.Errors.Select(e => e.Description) });
+                return ValidationProblem(createResult);
             }
 
             await _userManager.AddLoginAsync(
@@ -199,30 +236,36 @@ public class AuthController : ControllerBase
             Email = user.Email ?? string.Empty
         };
     }
-}
 
-public record RegisterRequest
-{
-    public string Email { get; init; } = string.Empty;
-    public string Password { get; init; } = string.Empty;
-    public string? DisplayName { get; init; }
-}
+    private ActionResult ValidationProblem(ValidationResult validationResult)
+    {
+        Dictionary<string, string[]> errors = validationResult.Errors
+            .GroupBy(e => e.PropertyName)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(e => e.ErrorMessage).ToArray());
 
-public record LoginRequest
-{
-    public string Email { get; init; } = string.Empty;
-    public string Password { get; init; } = string.Empty;
-}
+        ValidationProblemDetails details = new(errors)
+        {
+            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
+        };
 
-public record GoogleLoginRequest
-{
-    public string IdToken { get; init; } = string.Empty;
-}
+        return BadRequest(details);
+    }
 
-public record AuthResultVm
-{
-    public string Token { get; init; } = string.Empty;
-    public DateTime ExpiresAt { get; init; }
-    public string UserId { get; init; } = string.Empty;
-    public string Email { get; init; } = string.Empty;
+    private ActionResult ValidationProblem(IdentityResult identityResult)
+    {
+        Dictionary<string, string[]> errors = identityResult.Errors
+            .GroupBy(e => e.Code)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(e => e.Description).ToArray());
+
+        ValidationProblemDetails details = new(errors)
+        {
+            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
+        };
+
+        return BadRequest(details);
+    }
 }

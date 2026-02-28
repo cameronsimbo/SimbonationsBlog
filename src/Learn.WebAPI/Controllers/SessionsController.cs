@@ -1,5 +1,7 @@
 using Learn.Application.Sessions.CompleteSession;
+using Learn.Application.Sessions.CompleteSession.Models;
 using Learn.Application.Sessions.StartSession;
+using Learn.Application.Sessions.StartSession.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

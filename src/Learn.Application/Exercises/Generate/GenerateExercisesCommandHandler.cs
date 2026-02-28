@@ -1,6 +1,7 @@
 using Learn.Application.Common.Exceptions;
 using Learn.Application.Common.Interfaces;
 using Learn.Application.Exercises.GetByLesson;
+using Learn.Application.Exercises.GetByLesson.Models;
 using Learn.Domain.Entities;
 using Learn.Domain.Enums;
 using MediatR;

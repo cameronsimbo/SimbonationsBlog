@@ -1,5 +1,6 @@
 using Learn.Application.Common.Exceptions;
 using Learn.Application.Common.Interfaces;
+using Learn.Application.Topics.Get.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

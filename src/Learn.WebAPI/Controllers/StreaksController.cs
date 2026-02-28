@@ -1,4 +1,5 @@
 using Learn.Application.Streaks.GetMine;
+using Learn.Application.Streaks.GetMine.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

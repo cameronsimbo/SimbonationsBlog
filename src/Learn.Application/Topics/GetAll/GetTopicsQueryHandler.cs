@@ -1,4 +1,5 @@
 using Learn.Application.Common.Interfaces;
+using Learn.Application.Topics.GetAll.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

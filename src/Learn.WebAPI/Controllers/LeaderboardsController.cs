@@ -1,4 +1,5 @@
 using Learn.Application.Leaderboards.GetWeekly;
+using Learn.Application.Leaderboards.GetWeekly.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Learn.WebAPI.Controllers;

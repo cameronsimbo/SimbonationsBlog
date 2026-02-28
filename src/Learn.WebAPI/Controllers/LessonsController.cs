@@ -1,4 +1,5 @@
 using Learn.Application.Lessons.GetByUnit;
+using Learn.Application.Lessons.GetByUnit.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Learn.WebAPI.Controllers;

@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text;
+using FluentValidation;
 using Learn.Infrastructure.Persistence;
 using Learn.WebAPI.Filters;
 using Learn.WebAPI.Middleware;
@@ -22,6 +24,7 @@ builder.Services.AddInfrastructureServices(
     builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 builder.Services.AddScoped<Learn.Application.Common.Interfaces.ICurrentUser, CurrentUserService>();
 
 builder.Services.AddAuthentication(options =>

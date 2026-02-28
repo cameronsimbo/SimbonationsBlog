@@ -1,5 +1,6 @@
 using Learn.Application.Common.Exceptions;
 using Learn.Application.Common.Interfaces;
+using Learn.Application.Exercises.Vote.Models;
 using Learn.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

@@ -1,5 +1,6 @@
 using Learn.Application.QuestionBank.Create;
 using Learn.Application.QuestionBank.GetMine;
+using Learn.Application.QuestionBank.GetMine.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

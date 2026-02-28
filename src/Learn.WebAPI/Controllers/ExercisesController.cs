@@ -1,7 +1,11 @@
 using Learn.Application.Exercises.Generate;
 using Learn.Application.Exercises.GetByLesson;
+using Learn.Application.Exercises.GetByLesson.Models;
 using Learn.Application.Exercises.Submit;
+using Learn.Application.Exercises.Submit.Models;
 using Learn.Application.Exercises.Vote;
+using Learn.Application.Exercises.Vote.Models;
+using Learn.WebAPI.Controllers.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -52,9 +56,4 @@ public class ExercisesController : ApiControllerBase
 
         return Ok(result);
     }
-}
-
-public record VoteRequest
-{
-    public bool IsUpvote { get; init; }
 }

@@ -1,5 +1,6 @@
 using Learn.Application.Common.Exceptions;
 using Learn.Application.Common.Interfaces;
+using Learn.Application.Exercises.Submit.Models;
 using Learn.Domain.Entities;
 using Learn.Domain.Services;
 using MediatR;
