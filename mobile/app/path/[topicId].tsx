@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { getLearningPath, startSession } from "../../lib/api";
 import { Colors } from "../../lib/constants";
+import Svg, { Path as SvgPath } from "react-native-svg";
 
+// ─── Types ───────────────────────────────────────────────
 interface PathLesson {
   lessonId: string;
   name: string;
@@ -42,25 +45,132 @@ interface LearningPath {
   units: PathUnit[];
 }
 
-const CrownDisplay = ({ count }: { count: number }) => {
-  const maxCrowns = 5;
+// ─── Layout constants ────────────────────────────────────
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const NODE_SIZE = 68;
+const NODE_RADIUS = NODE_SIZE / 2;
+const VERTICAL_GAP = 110;
+const AMPLITUDE = 70;
+const CENTER_X = SCREEN_WIDTH / 2;
+const UNIT_BANNER_HEIGHT = 48;
+const TOP_PADDING = 20;
+
+// ─── Flattened path item ─────────────────────────────────
+type PathNodeType = "lesson" | "unit-banner";
+
+interface PathNode {
+  type: PathNodeType;
+  lesson?: PathLesson;
+  unitIndex?: number;
+  unitName?: string;
+  unitCompleted?: boolean;
+  unitLocked?: boolean;
+  x: number;
+  y: number;
+  globalIndex: number;
+}
+
+// ─── Build node positions with sinusoidal winding ────────
+function buildPathNodes(units: PathUnit[]): PathNode[] {
+  const nodes: PathNode[] = [];
+  let globalIndex = 0;
+
+  for (let unitIdx = 0; unitIdx < units.length; unitIdx++) {
+    const unit = units[unitIdx];
+
+    // Unit banner
+    const bannerY = TOP_PADDING + globalIndex * VERTICAL_GAP;
+    nodes.push({
+      type: "unit-banner",
+      unitIndex: unitIdx,
+      unitName: unit.name,
+      unitCompleted: unit.isCompleted,
+      unitLocked: unit.isLocked,
+      x: CENTER_X,
+      y: bannerY,
+      globalIndex,
+    });
+    globalIndex++;
+
+    // Lesson nodes — sinusoidal x offset for winding path
+    for (let lessonIdx = 0; lessonIdx < unit.lessons.length; lessonIdx++) {
+      const lesson = unit.lessons[lessonIdx];
+      const y = TOP_PADDING + globalIndex * VERTICAL_GAP;
+      const x = CENTER_X + AMPLITUDE * Math.sin(globalIndex * 0.85);
+
+      nodes.push({
+        type: "lesson",
+        lesson,
+        x,
+        y,
+        globalIndex,
+      });
+      globalIndex++;
+    }
+  }
+
+  return nodes;
+}
+
+// ─── SVG connector curves between consecutive lessons ────
+function buildConnectorPaths(
+  nodes: PathNode[]
+): { d: string; color: string }[] {
+  const paths: { d: string; color: string }[] = [];
+  const lessonNodes = nodes.filter((n) => n.type === "lesson");
+
+  for (let i = 0; i < lessonNodes.length - 1; i++) {
+    const from = lessonNodes[i];
+    const to = lessonNodes[i + 1];
+
+    const fromY = from.y + NODE_RADIUS;
+    const toY = to.y - NODE_RADIUS;
+    const midY = (fromY + toY) / 2;
+
+    // Quadratic Bézier control point — offset for smooth S-curve
+    const cpX = (from.x + to.x) / 2 + (to.x - from.x) * 0.3;
+
+    const d = `M ${from.x} ${fromY} Q ${cpX} ${midY} ${to.x} ${toY}`;
+
+    const isActive =
+      from.lesson?.isCompleted === true && to.lesson?.isLocked !== true;
+    const color = isActive ? Colors.correct : Colors.border;
+
+    paths.push({ d, color });
+  }
+
+  return paths;
+}
+
+// ─── Star icon ───────────────────────────────────────────
+function StarIcon({ filled, size = 30 }: { filled: boolean; size?: number }) {
   return (
-    <View style={pathStyles.crowns}>
-      {Array.from({ length: maxCrowns }).map((_, i) => (
-        <Text
-          key={i}
-          style={[
-            pathStyles.crownIcon,
-            { opacity: i < count ? 1 : 0.2 },
-          ]}
-        >
-          👑
-        </Text>
+    <Text
+      style={{
+        fontSize: size,
+        color: filled ? "#FFFFFF" : Colors.textMuted,
+        textAlign: "center",
+        lineHeight: size + 4,
+      }}
+    >
+      {filled ? "\u2605" : "\u2606"}
+    </Text>
+  );
+}
+
+// ─── Crown dots ──────────────────────────────────────────
+function CrownDots({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <View style={styles.crownDots}>
+      {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
+        <View key={i} style={styles.crownDot} />
       ))}
     </View>
   );
-};
+}
 
+// ─── Main screen ─────────────────────────────────────────
 export default function PathScreen() {
   const { topicId } = useLocalSearchParams<{ topicId: string }>();
   const [path, setPath] = useState<LearningPath | null>(null);
@@ -103,45 +213,56 @@ export default function PathScreen() {
     }
   };
 
+  // ─── Loading ───
   if (loading) {
     return (
-      <View style={pathStyles.center}>
+      <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={pathStyles.loadingText}>Loading your path...</Text>
+        <Text style={styles.loadingText}>Loading your path...</Text>
       </View>
     );
   }
 
+  // ─── Error ───
   if (error || !path) {
     return (
-      <View style={pathStyles.center}>
-        <Text style={pathStyles.errorText}>⚠️ {error || "No data"}</Text>
-        <TouchableOpacity style={pathStyles.retryBtn} onPress={fetchPath}>
-          <Text style={pathStyles.retryBtnText}>Retry</Text>
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{error || "No data"}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchPath}>
+          <Text style={styles.retryBtnText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  // ─── Build layout ───
+  const nodes = buildPathNodes(path.units);
+  const connectors = buildConnectorPaths(nodes);
+  const totalHeight =
+    nodes.length > 0 ? nodes[nodes.length - 1].y + VERTICAL_GAP : 400;
+
   return (
-    <View style={pathStyles.container}>
-      {/* Header */}
-      <View style={pathStyles.header}>
+    <View style={styles.container}>
+      {/* ── Header ── */}
+      <View style={styles.header}>
         <TouchableOpacity
-          style={pathStyles.backButton}
+          style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={pathStyles.backButtonText}>← Back</Text>
+          <Text style={styles.backButtonText}>{"\u2190"} Back</Text>
         </TouchableOpacity>
-        <Text style={pathStyles.title}>{path.topicName}</Text>
-        <View style={pathStyles.xpBadge}>
-          <Text style={pathStyles.xpText}>⚡ {path.totalXPEarned} XP</Text>
+        <Text style={styles.title}>{path.topicName}</Text>
+        <View style={styles.xpBadge}>
+          <Text style={styles.xpText}>{path.totalXPEarned} XP</Text>
         </View>
       </View>
 
-      {/* Start Session Button */}
+      {/* ── Start Session ── */}
       <TouchableOpacity
-        style={[pathStyles.sessionButton, starting && pathStyles.sessionButtonDisabled]}
+        style={[
+          styles.sessionButton,
+          starting && styles.sessionButtonDisabled,
+        ]}
         onPress={handleStartSession}
         disabled={starting}
         activeOpacity={0.8}
@@ -149,117 +270,153 @@ export default function PathScreen() {
         {starting ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={pathStyles.sessionButtonText}>▶ Start Session</Text>
+          <Text style={styles.sessionButtonText}>{"\u25B6"} Start Session</Text>
         )}
       </TouchableOpacity>
 
-      {/* Path */}
+      {/* ── Winding Path ── */}
       <ScrollView
-        contentContainerStyle={pathStyles.pathContainer}
+        contentContainerStyle={{ height: totalHeight + 60 }}
         showsVerticalScrollIndicator={false}
       >
-        {path.units.map((unit, unitIdx) => (
-          <View key={unit.unitId}>
-            {/* Unit Header */}
+        {/* SVG curved connectors */}
+        <Svg
+          width={SCREEN_WIDTH}
+          height={totalHeight + 60}
+          style={StyleSheet.absoluteFill}
+        >
+          {connectors.map((conn, i) => (
+            <SvgPath
+              key={i}
+              d={conn.d}
+              stroke={conn.color}
+              strokeWidth={4}
+              fill="none"
+              strokeLinecap="round"
+            />
+          ))}
+        </Svg>
+
+        {/* Render each node */}
+        {nodes.map((node) => {
+          // ── Unit banner ──
+          if (node.type === "unit-banner") {
+            return (
+              <View
+                key={`unit-${node.unitIndex}`}
+                style={[
+                  styles.unitBanner,
+                  {
+                    top: node.y - UNIT_BANNER_HEIGHT / 2,
+                    left: 20,
+                    right: 20,
+                  },
+                  node.unitCompleted === true && styles.unitBannerCompleted,
+                  node.unitLocked === true && styles.unitBannerLocked,
+                ]}
+              >
+                <Text style={styles.unitBannerIcon}>
+                  {node.unitCompleted
+                    ? "\uD83C\uDFC6"
+                    : node.unitLocked
+                    ? "\uD83D\uDD12"
+                    : "\uD83D\uDCDA"}
+                </Text>
+                <View style={styles.unitBannerTextWrap}>
+                  <Text style={styles.unitBannerLabel}>
+                    Unit {(node.unitIndex ?? 0) + 1}
+                  </Text>
+                  <Text style={styles.unitBannerName} numberOfLines={1}>
+                    {node.unitName}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+
+          // ── Lesson node ──
+          const lesson = node.lesson!;
+          const isCompleted = lesson.isCompleted;
+          const isCurrent = lesson.isCurrent;
+          const isLocked = lesson.isLocked;
+
+          const bgColor = isCompleted
+            ? Colors.correct
+            : isCurrent
+            ? Colors.primary
+            : isLocked
+            ? Colors.surfaceLight
+            : Colors.surface;
+
+          const borderColor = isCompleted
+            ? Colors.correct
+            : isCurrent
+            ? "#7CE830"
+            : isLocked
+            ? Colors.border
+            : Colors.border;
+
+          return (
             <View
+              key={lesson.lessonId}
               style={[
-                pathStyles.unitHeader,
-                unit.isCompleted && pathStyles.unitHeaderCompleted,
-                unit.isCurrent && pathStyles.unitHeaderCurrent,
-                unit.isLocked && pathStyles.unitHeaderLocked,
+                styles.nodeWrapper,
+                {
+                  top: node.y - NODE_RADIUS,
+                  left: node.x - NODE_RADIUS,
+                },
               ]}
             >
-              <Text style={pathStyles.unitIndex}>Unit {unitIdx + 1}</Text>
-              <Text style={pathStyles.unitName}>{unit.name}</Text>
-              {unit.isCompleted ? (
-                <Text style={pathStyles.unitCheck}>✅</Text>
-              ) : unit.isLocked ? (
-                <Text style={pathStyles.unitLock}>🔒</Text>
+              {/* Glow ring for current */}
+              {isCurrent ? <View style={styles.glowRing} /> : null}
+
+              {/* Circle */}
+              <View
+                style={[
+                  styles.nodeCircle,
+                  { backgroundColor: bgColor, borderColor: borderColor },
+                  isLocked && styles.nodeLocked,
+                ]}
+              >
+                {isLocked ? (
+                  <Text style={styles.lockIcon}>{"\uD83D\uDD12"}</Text>
+                ) : (
+                  <StarIcon filled={isCompleted || isCurrent} size={30} />
+                )}
+              </View>
+
+              {/* Label */}
+              {!isLocked ? (
+                <Text
+                  style={[
+                    styles.nodeLabel,
+                    isCurrent && styles.nodeLabelCurrent,
+                  ]}
+                  numberOfLines={2}
+                >
+                  {lesson.name}
+                </Text>
+              ) : null}
+
+              {/* Crown dots */}
+              {lesson.crowns > 0 ? (
+                <CrownDots count={lesson.crowns} />
+              ) : null}
+
+              {/* Best score */}
+              {lesson.bestScore > 0 && !isLocked ? (
+                <Text style={styles.scoreLabel}>{lesson.bestScore}%</Text>
               ) : null}
             </View>
-
-            {/* Lesson Nodes */}
-            {unit.lessons.map((lesson, lessonIdx) => {
-              const isEven = lessonIdx % 2 === 0;
-              return (
-                <View key={lesson.lessonId}>
-                  {/* Connector line */}
-                  {lessonIdx > 0 ? (
-                    <View style={pathStyles.connector}>
-                      <View
-                        style={[
-                          pathStyles.connectorLine,
-                          lesson.isLocked && pathStyles.connectorLocked,
-                        ]}
-                      />
-                    </View>
-                  ) : null}
-
-                  <View
-                    style={[
-                      pathStyles.nodeRow,
-                      { justifyContent: isEven ? "flex-start" : "flex-end" },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        pathStyles.node,
-                        lesson.isCompleted && pathStyles.nodeCompleted,
-                        lesson.isCurrent && pathStyles.nodeCurrent,
-                        lesson.isLocked && pathStyles.nodeLocked,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          pathStyles.nodeEmoji,
-                          lesson.isLocked && pathStyles.nodeEmojiLocked,
-                        ]}
-                      >
-                        {lesson.isCompleted
-                          ? "⭐"
-                          : lesson.isCurrent
-                          ? "📖"
-                          : lesson.isLocked
-                          ? "🔒"
-                          : "📘"}
-                      </Text>
-                      <Text
-                        style={[
-                          pathStyles.nodeLabel,
-                          lesson.isLocked && pathStyles.nodeLabelLocked,
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {lesson.name}
-                      </Text>
-                      {lesson.crowns > 0 ? (
-                        <CrownDisplay count={lesson.crowns} />
-                      ) : null}
-                      {lesson.bestScore > 0 && !lesson.isLocked ? (
-                        <Text style={pathStyles.nodeScore}>
-                          Best: {lesson.bestScore}%
-                        </Text>
-                      ) : null}
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-
-            {/* Separator between units */}
-            {unitIdx < path.units.length - 1 ? (
-              <View style={pathStyles.unitSeparator}>
-                <View style={pathStyles.unitSeparatorLine} />
-              </View>
-            ) : null}
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </View>
   );
 }
 
-const pathStyles = StyleSheet.create({
+// ─── Styles ──────────────────────────────────────────────
+const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: {
     flex: 1,
@@ -277,27 +434,17 @@ const pathStyles = StyleSheet.create({
   },
   retryBtnText: { color: Colors.text, fontWeight: "700" },
 
-  // Back button
-  backButton: {
-    paddingVertical: 6,
-    paddingRight: 12,
-  },
-  backButtonText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
   // Header
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
   },
-  title: { fontSize: 22, fontWeight: "800", color: Colors.text, flex: 1 },
+  backButton: { paddingVertical: 6, paddingRight: 12 },
+  backButtonText: { color: Colors.primary, fontSize: 16, fontWeight: "700" },
+  title: { fontSize: 20, fontWeight: "800", color: Colors.text, flex: 1 },
   xpBadge: {
     backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 12,
@@ -310,8 +457,8 @@ const pathStyles = StyleSheet.create({
   sessionButton: {
     backgroundColor: Colors.primary,
     marginHorizontal: 20,
-    marginVertical: 12,
-    paddingVertical: 16,
+    marginVertical: 10,
+    paddingVertical: 14,
     borderRadius: 16,
     alignItems: "center",
     shadowColor: Colors.primary,
@@ -321,104 +468,96 @@ const pathStyles = StyleSheet.create({
     elevation: 6,
   },
   sessionButtonDisabled: { opacity: 0.6 },
-  sessionButtonText: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  sessionButtonText: { color: "#fff", fontSize: 17, fontWeight: "800" },
 
-  // Path
-  pathContainer: { paddingHorizontal: 20, paddingBottom: 40 },
-
-  // Unit header
-  unitHeader: {
+  // Unit banner (absolute)
+  unitBanner: {
+    position: "absolute",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.surface,
     borderRadius: 14,
-    padding: 14,
-    marginTop: 20,
-    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.primary,
+    zIndex: 10,
   },
-  unitHeaderCompleted: { borderColor: Colors.correct },
-  unitHeaderCurrent: { borderColor: Colors.primary },
-  unitHeaderLocked: { opacity: 0.5 },
-  unitIndex: {
-    fontSize: 12,
+  unitBannerCompleted: { borderColor: Colors.correct },
+  unitBannerLocked: { borderColor: Colors.border, opacity: 0.5 },
+  unitBannerIcon: { fontSize: 22, marginRight: 10 },
+  unitBannerTextWrap: { flex: 1 },
+  unitBannerLabel: {
+    fontSize: 11,
     fontWeight: "700",
     color: Colors.textMuted,
-    marginRight: 8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  unitName: {
-    fontSize: 16,
+  unitBannerName: {
+    fontSize: 15,
     fontWeight: "700",
     color: Colors.text,
-    flex: 1,
+    marginTop: 1,
   },
-  unitCheck: { fontSize: 18 },
-  unitLock: { fontSize: 18 },
 
-  // Connector
-  connector: { alignItems: "center", height: 24 },
-  connectorLine: {
-    width: 3,
-    height: "100%",
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  connectorLocked: { backgroundColor: Colors.border },
-
-  // Node
-  nodeRow: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-  },
-  node: {
-    width: 130,
+  // Node wrapper (absolute)
+  nodeWrapper: {
+    position: "absolute",
+    width: NODE_SIZE,
     alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 2,
-    borderColor: Colors.border,
+    zIndex: 5,
   },
-  nodeCompleted: {
-    borderColor: Colors.correct,
-    backgroundColor: Colors.surfaceLight,
+
+  // Glow ring behind current node
+  glowRing: {
+    position: "absolute",
+    width: NODE_SIZE + 16,
+    height: NODE_SIZE + 16,
+    borderRadius: (NODE_SIZE + 16) / 2,
+    backgroundColor: "rgba(88, 204, 2, 0.2)",
+    top: -8,
+    left: -8,
+    zIndex: -1,
   },
-  nodeCurrent: {
-    borderColor: Colors.primary,
-    borderWidth: 3,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+
+  // Circle node
+  nodeCircle: {
+    width: NODE_SIZE,
+    height: NODE_SIZE,
+    borderRadius: NODE_RADIUS,
+    borderWidth: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 4,
   },
   nodeLocked: { opacity: 0.4 },
-  nodeEmoji: { fontSize: 28, marginBottom: 6 },
-  nodeEmojiLocked: { fontSize: 22 },
+  lockIcon: { fontSize: 22 },
+
+  // Label below node
   nodeLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
-    color: Colors.text,
+    color: Colors.textSecondary,
     textAlign: "center",
+    marginTop: 6,
+    width: NODE_SIZE + 30,
   },
-  nodeLabelLocked: { color: Colors.textMuted },
-  nodeScore: {
-    fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 4,
+  nodeLabelCurrent: { color: Colors.text, fontWeight: "800" },
+
+  // Crown dots
+  crownDots: { flexDirection: "row", marginTop: 4, gap: 3 },
+  crownDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.gold,
   },
 
-  // Crowns
-  crowns: { flexDirection: "row", marginTop: 4 },
-  crownIcon: { fontSize: 10, marginHorizontal: 1 },
-
-  // Unit separator
-  unitSeparator: { alignItems: "center", height: 32 },
-  unitSeparatorLine: {
-    width: 3,
-    height: "100%",
-    backgroundColor: Colors.border,
-    borderRadius: 2,
-  },
+  // Score
+  scoreLabel: { fontSize: 10, color: Colors.textMuted, marginTop: 2 },
 });
