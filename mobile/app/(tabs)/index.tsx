@@ -16,6 +16,7 @@ import {
   enrollInTopic,
 } from "../../lib/api";
 import { Colors, SubjectDomains, DifficultyLevels } from "../../lib/constants";
+import { useAuth } from "../../lib/auth";
 
 interface EnrolledTopic {
   topicId: string;
@@ -58,6 +59,7 @@ interface Topic {
 }
 
 export default function DashboardScreen() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,6 +71,7 @@ export default function DashboardScreen() {
   const fetchDashboard = useCallback(async () => {
     try {
       setError(null);
+      setLoading(true);
       const response = await getDashboard();
       setDashboard(response.data);
     } catch (err: any) {
@@ -80,8 +83,13 @@ export default function DashboardScreen() {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
     fetchDashboard();
-  }, [fetchDashboard]);
+  }, [authLoading, isAuthenticated, fetchDashboard]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -116,7 +124,7 @@ export default function DashboardScreen() {
     }
   };
 
-  if (loading) {
+  if (authLoading || (loading && !refreshing)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -136,7 +144,15 @@ export default function DashboardScreen() {
     );
   }
 
-  const data = dashboard!;
+  if (!dashboard) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  const data = dashboard;
 
   return (
     <View style={styles.container}>
