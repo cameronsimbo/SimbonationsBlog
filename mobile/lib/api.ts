@@ -3,9 +3,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
-  timeout: 10000,
+  timeout: 15000,
   headers: { "Content-Type": "application/json" },
 });
+
+// Longer timeout for AI-powered endpoints (LLM inference on CPU)
+const AI_TIMEOUT = 120_000;
 
 let authToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
@@ -93,10 +96,10 @@ export const submitAnswer = (data: {
   exerciseId: string;
   userAnswer: string;
   timeTakenSeconds: number;
-}) => api.post("/Exercises/submit", data);
+}) => api.post("/Exercises/submit", data, { timeout: AI_TIMEOUT });
 
 export const generateExercises = (lessonId: string, count: number = 5) =>
-  api.post("/Exercises/generate", { lessonId, count });
+  api.post("/Exercises/generate", { lessonId, count }, { timeout: AI_TIMEOUT });
 
 export const voteOnExercise = (exerciseId: string, isUpvote: boolean) =>
   api.post(`/Exercises/${exerciseId}/vote`, { isUpvote });
@@ -134,7 +137,7 @@ export const getLearningPath = (topicId: string) =>
 
 // Sessions
 export const startSession = (topicId: string) =>
-  api.post("/Sessions/start", { topicId });
+  api.post("/Sessions/start", { topicId }, { timeout: AI_TIMEOUT });
 
 export const completeSession = (data: {
   topicId: string;

@@ -80,15 +80,16 @@ public class OllamaService : IAIEvaluationService
             options = new
             {
                 temperature = 0.7,
-                num_predict = 2048
+                num_predict = 512
             }
         };
 
         string json = JsonSerializer.Serialize(requestBody);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
+        // Standalone timeout — don't link to the request cancellation token so the
+        // LLM call completes even if the mobile client disconnects early.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_options.TimeoutSeconds));
 
         HttpResponseMessage httpResponse = await _httpClient.PostAsync(
             $"{_options.BaseUrl}/api/generate", content, cts.Token);
@@ -183,20 +184,16 @@ public class OllamaService : IAIEvaluationService
         using JsonDocument doc = JsonDocument.Parse(json);
         JsonElement root = doc.RootElement;
 
-        int score = root.TryGetProperty("score", out JsonElement scoreEl) ? scoreEl.GetInt32() : 50;
+        int score = root.TryGetProperty("score", out JsonElement scoreEl) && scoreEl.ValueKind == JsonValueKind.Number
+            ? scoreEl.GetInt32() : 50;
         score = Math.Clamp(score, 0, 100);
 
-        bool isPassing = root.TryGetProperty("isPassing", out JsonElement passEl) ? passEl.GetBoolean() : score >= 60;
+        bool isPassing = root.TryGetProperty("isPassing", out JsonElement passEl) && passEl.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? passEl.GetBoolean() : score >= 60;
 
-        string feedback = root.TryGetProperty("feedback", out JsonElement fbEl) ? fbEl.GetString() ?? "No feedback available." : "No feedback available.";
-
-        string? correction = root.TryGetProperty("suggestedCorrection", out JsonElement corrEl)
-            ? corrEl.ValueKind == JsonValueKind.Null ? null : corrEl.GetString()
-            : null;
-
-        string? breakdown = root.TryGetProperty("detailedBreakdown", out JsonElement bdEl)
-            ? bdEl.ValueKind == JsonValueKind.Null ? null : bdEl.GetString()
-            : null;
+        string feedback = GetStringOrSerialize(root, "feedback") ?? "No feedback available.";
+        string? correction = GetStringOrSerialize(root, "suggestedCorrection");
+        string? breakdown = GetStringOrSerialize(root, "detailedBreakdown");
 
         return new AIEvaluationResult
         {
@@ -265,5 +262,25 @@ public class OllamaService : IAIEvaluationService
         }
 
         throw new JsonException("Unbalanced JSON in response");
+    }
+
+    /// <summary>
+    /// Safely reads a JSON property as a string, serialising objects/arrays to string if necessary.
+    /// Returns null if the property is missing or explicitly null.
+    /// </summary>
+    private static string? GetStringOrSerialize(JsonElement parent, string propertyName)
+    {
+        if (!parent.TryGetProperty(propertyName, out JsonElement el))
+            return null;
+
+        return el.ValueKind switch
+        {
+            JsonValueKind.Null or JsonValueKind.Undefined => null,
+            JsonValueKind.String => el.GetString(),
+            JsonValueKind.Number => el.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            _ => el.GetRawText() // Object or Array — serialise as-is
+        };
     }
 }
