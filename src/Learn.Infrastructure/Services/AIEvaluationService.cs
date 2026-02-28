@@ -3,11 +3,15 @@ using Learn.Domain.Enums;
 
 namespace Learn.Infrastructure.Services;
 
+/// <summary>
+/// Fallback/stub AI evaluation service used when Ollama is unavailable.
+/// Returns template-based exercises and a fixed score.
+/// </summary>
 public class AIEvaluationService : IAIEvaluationService
 {
     public async Task<AIEvaluationResult> EvaluateAnswerAsync(EvaluationRequest request, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement Azure OpenAI integration
+        // Fallback: return a fixed score when LLM is not reachable
         await Task.CompletedTask;
 
         return new AIEvaluationResult
@@ -22,7 +26,7 @@ public class AIEvaluationService : IAIEvaluationService
 
     public async Task<List<GeneratedExercise>> GenerateExercisesAsync(ExerciseGenerationRequest request, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace with Azure OpenAI integration
+        // Fallback: return template-based exercises when LLM is not reachable
         await Task.CompletedTask;
 
         string topicContext = request.LessonContext ?? request.LessonName;

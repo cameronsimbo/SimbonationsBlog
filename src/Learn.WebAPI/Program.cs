@@ -18,7 +18,8 @@ builder.Host.UseSerilog((context, configuration) =>
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found."));
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found."),
+    builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Learn.Application.Common.Interfaces.ICurrentUser, CurrentUserService>();

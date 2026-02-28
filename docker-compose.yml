@@ -11,6 +11,29 @@ services:
     volumes:
       - sqldata:/var/opt/mssql
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["ollama", "pull", "llama3.2:3b"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+
   api:
     build:
       context: .
@@ -18,7 +41,10 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - sqlserver
+      ollama:
+        condition: service_healthy
+      sqlserver:
+        condition: service_started
     environment:
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=LearnPlatform;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True
       - ASPNETCORE_ENVIRONMENT=Development
@@ -27,10 +53,11 @@ services:
       - Jwt__Key=YourSuperSecretKeyForDevelopment1234567890
       - Jwt__Issuer=LearnPlatform
       - Jwt__Audience=LearnPlatformApp
-      - AzureOpenAI__Endpoint=https://your-openai.openai.azure.com/
-      - AzureOpenAI__ApiKey=your-api-key
-      - AzureOpenAI__DeploymentName=gpt-4o
+      - Ollama__BaseUrl=http://ollama:11434
+      - Ollama__Model=llama3.2:3b
+      - Ollama__TimeoutSeconds=120
       - DailySubmissionLimit=50
 
 volumes:
   sqldata:
+  ollama_data:
