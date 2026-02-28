@@ -48,7 +48,7 @@ public class ClaudeAIService : IAIEvaluationService
             string prompt = BuildEvaluationPrompt(request);
             string response = await CallClaudeAsync(prompt, maxTokens: 512, cancellationToken);
             AIEvaluationResult result = ParseEvaluationResponse(response);
-            return result with { GradedBy = _options.Model };
+            return result with { GradedBy = "Claude Haiku" };
         }
         catch (Exception ex)
         {
@@ -75,6 +75,9 @@ public class ClaudeAIService : IAIEvaluationService
 
     private async Task<string> CallClaudeAsync(string prompt, int maxTokens, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+            throw new InvalidOperationException("Claude API key is not configured (ANTHROPIC_API_KEY env var missing)");
+
         var requestBody = new
         {
             model = _options.Model,

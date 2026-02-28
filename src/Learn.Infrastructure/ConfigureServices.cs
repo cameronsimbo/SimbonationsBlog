@@ -33,6 +33,10 @@ public static class ConfigureServices
         services.Configure<OllamaOptions>(configuration.GetSection(OllamaOptions.SectionName));
         services.Configure<ClaudeOptions>(configuration.GetSection(ClaudeOptions.SectionName));
 
+        // Startup diagnostic: warn if Claude API key is absent so the fallback chain is transparent
+        if (string.IsNullOrWhiteSpace(configuration["Claude:ApiKey"]))
+            Console.WriteLine("[WARNING] Claude:ApiKey is not configured. AI grading will use Ollama fallback. Set ANTHROPIC_API_KEY env var.");
+
         // Register OllamaService as concrete type (used as fallback inside ClaudeAIService)
         services.AddHttpClient<OllamaService>(client =>
         {

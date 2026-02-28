@@ -313,16 +313,17 @@ export default function SessionScreen() {
             },
           ]}
         >
-          <Text style={s.feedbackBadgeText}>
-            {currentFeedback.isPassing ? "✓ Correct" : "✗ Needs Work"} —{" "}
+          <View style={s.feedbackBadgeRow}>
+            <Text style={s.feedbackBadgeText}>
+              {currentFeedback.isPassing ? "✓ Correct" : "✗ Needs Work"}
+            </Text>
+            <Text style={s.feedbackXP}>+{currentFeedback.xpEarned} XP</Text>
+          </View>
+          <Text style={s.feedbackGradeRow}>
             {currentFeedback.score}%
+            {currentFeedback.gradedBy ? ` · Graded by ${currentFeedback.gradedBy}` : ""}
           </Text>
-          <Text style={s.feedbackXP}>+{currentFeedback.xpEarned} XP</Text>
         </View>
-
-        {currentFeedback.gradedBy ? (
-          <Text style={s.gradedByText}>Graded by {currentFeedback.gradedBy}</Text>
-        ) : null}
 
         <View style={s.feedbackCard}>
           <Text style={s.feedbackTitle}>Feedback</Text>
@@ -568,21 +569,22 @@ const s = StyleSheet.create({
 
   // Feedback
   feedbackBadge: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
   },
+  feedbackBadgeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   feedbackBadgeText: { color: "#fff", fontSize: 16, fontWeight: "800" },
   feedbackXP: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  gradedByText: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    textAlign: "right",
-    marginBottom: 8,
-    fontStyle: "italic",
+  feedbackGradeRow: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    marginTop: 4,
+    fontWeight: "600",
   },
   feedbackCard: {
     backgroundColor: Colors.surface,

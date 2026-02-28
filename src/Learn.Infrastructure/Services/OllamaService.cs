@@ -47,7 +47,7 @@ public class OllamaService : IAIEvaluationService
             string prompt = BuildEvaluationPrompt(request);
             string response = await CallOllamaAsync(prompt, cancellationToken);
             AIEvaluationResult result = ParseEvaluationResponse(response);
-            return result with { GradedBy = $"Ollama ({_options.Model})" };
+            return result with { GradedBy = "Ollama" };
         }
         catch (Exception ex)
         {
