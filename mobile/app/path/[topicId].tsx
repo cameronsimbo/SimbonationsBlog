@@ -494,9 +494,14 @@ export default function PathScreen() {
             </View>
           );
 
+          const canTap = !lesson.isLocked;
+
           return (
-            <View
+            <TouchableOpacity
               key={lesson.lessonId}
+              activeOpacity={canTap ? 0.7 : 1}
+              disabled={!canTap || starting}
+              onPress={() => canTap && handleStartSession()}
               style={[
                 styles.nodeWrapper,
                 {
@@ -535,7 +540,7 @@ export default function PathScreen() {
               {lesson.bestScore > 0 && !lesson.isLocked && (
                 <Text style={styles.scoreLabel}>{lesson.bestScore}%</Text>
               )}
-            </View>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
