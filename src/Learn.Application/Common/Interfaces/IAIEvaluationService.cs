@@ -6,6 +6,7 @@ public interface IAIEvaluationService
 {
     Task<AIEvaluationResult> EvaluateAnswerAsync(EvaluationRequest request, CancellationToken cancellationToken);
     Task<List<GeneratedExercise>> GenerateExercisesAsync(ExerciseGenerationRequest request, CancellationToken cancellationToken);
+    Task<TopicValidationResult> ValidateTopicAsync(TopicValidationRequest request, CancellationToken cancellationToken);
 }
 
 public record EvaluationRequest
@@ -51,4 +52,16 @@ public record GeneratedExercise
     public string ReferenceAnswer { get; init; } = string.Empty;
     public string? Hints { get; init; }
     public ExerciseType ExerciseType { get; init; }
+}
+
+public record TopicValidationRequest
+{
+    public string TopicName { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+}
+
+public record TopicValidationResult
+{
+    public bool IsValid { get; init; }
+    public string? RejectionReason { get; init; }
 }

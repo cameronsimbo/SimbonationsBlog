@@ -66,6 +66,11 @@ public class AIEvaluationService : IAIEvaluationService
         return exercises;
     }
 
+    public Task<TopicValidationResult> ValidateTopicAsync(TopicValidationRequest request, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new TopicValidationResult { IsValid = true });
+    }
+
     private static List<(string prompt, string context, string answer, string hints)> GenerateTemplatesForLesson(
         string topicName,
         string unitName,

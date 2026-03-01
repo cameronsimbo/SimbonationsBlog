@@ -85,6 +85,25 @@ public class ClaudeAIService : IAIEvaluationService
         }
     }
 
+    public async Task<TopicValidationResult> ValidateTopicAsync(TopicValidationRequest request, CancellationToken cancellationToken = default)
+    {
+        string? preferredModel = _httpContextAccessor.HttpContext?.Request.Headers["X-Preferred-Model"].ToString();
+        if (string.Equals(preferredModel, "ollama", StringComparison.OrdinalIgnoreCase))
+            return await _ollamaFallback.ValidateTopicAsync(request, cancellationToken);
+
+        try
+        {
+            string prompt = BuildTopicValidationPrompt(request);
+            string response = await CallClaudeAsync(prompt, maxTokens: 256, cancellationToken);
+            return ParseTopicValidationResponse(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Claude topic validation failed, falling back to Ollama");
+            return await _ollamaFallback.ValidateTopicAsync(request, CancellationToken.None);
+        }
+    }
+
     private async Task<string> CallClaudeAsync(string prompt, int maxTokens, CancellationToken cancellationToken)
     {
         string? headerKey = _httpContextAccessor.HttpContext?.Request.Headers["X-Claude-Api-Key"].ToString();
@@ -264,6 +283,52 @@ public class ClaudeAIService : IAIEvaluationService
         }
 
         return exercises.Count > 0 ? exercises : throw new InvalidOperationException("No valid exercises parsed from Claude response");
+    }
+
+    private static string BuildTopicValidationPrompt(TopicValidationRequest request)
+    {
+        return $$"""
+            You are a topic suitability evaluator for an educational platform.
+
+            ACCEPT topics that are objective, factual, and have publicly available knowledge
+            (e.g. mathematics, history, science, programming, finance, languages).
+
+            REJECT topics that are:
+            - Too vague or meaningless (e.g. "stuff", "things")
+            - Purely personal and unknowable to others (e.g. "my dad", "my dog")
+            - Fictional without grounding in real-world context
+            - Too narrow to generate multiple exercises (e.g. "yesterday")
+            - Harmful or inappropriate
+
+            Topic Name: {{request.TopicName}}
+            Description: {{request.Description}}
+
+            Respond with ONLY valid JSON in this exact format:
+            {"isValid": true, "reason": ""}
+            or
+            {"isValid": false, "reason": "Clear explanation of why the topic was rejected."}
+            """;
+    }
+
+    private static TopicValidationResult ParseTopicValidationResponse(string response)
+    {
+        string json = ExtractJson(response, '{', '}');
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+
+        bool isValid = root.TryGetProperty("isValid", out JsonElement validEl)
+            && validEl.ValueKind is JsonValueKind.True or JsonValueKind.False
+            && validEl.GetBoolean();
+
+        string? reason = root.TryGetProperty("reason", out JsonElement reasonEl) && reasonEl.ValueKind == JsonValueKind.String
+            ? reasonEl.GetString()
+            : null;
+
+        return new TopicValidationResult
+        {
+            IsValid = isValid,
+            RejectionReason = string.IsNullOrWhiteSpace(reason) ? null : reason
+        };
     }
 
     private static string ExtractJson(string text, char open, char close)

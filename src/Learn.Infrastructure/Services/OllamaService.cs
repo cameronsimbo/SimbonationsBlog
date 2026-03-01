@@ -71,6 +71,21 @@ public class OllamaService : IAIEvaluationService
         }
     }
 
+    public async Task<TopicValidationResult> ValidateTopicAsync(TopicValidationRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            string prompt = BuildTopicValidationPrompt(request);
+            string response = await CallOllamaAsync(prompt, cancellationToken);
+            return ParseTopicValidationResponse(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ollama topic validation failed, falling back to stub service");
+            return await _fallbackService.ValidateTopicAsync(request, cancellationToken);
+        }
+    }
+
     private async Task<string> CallOllamaAsync(string prompt, CancellationToken cancellationToken)
     {
         var requestBody = new
@@ -241,6 +256,52 @@ public class OllamaService : IAIEvaluationService
         }
 
         return exercises.Count > 0 ? exercises : throw new InvalidOperationException("No valid exercises parsed from LLM response");
+    }
+
+    private static string BuildTopicValidationPrompt(TopicValidationRequest request)
+    {
+        return $$"""
+            You are a topic suitability evaluator for an educational platform.
+
+            ACCEPT topics that are objective, factual, and have publicly available knowledge
+            (e.g. mathematics, history, science, programming, finance, languages).
+
+            REJECT topics that are:
+            - Too vague or meaningless (e.g. "stuff", "things")
+            - Purely personal and unknowable to others (e.g. "my dad", "my dog")
+            - Fictional without grounding in real-world context
+            - Too narrow to generate multiple exercises (e.g. "yesterday")
+            - Harmful or inappropriate
+
+            Topic Name: {{request.TopicName}}
+            Description: {{request.Description}}
+
+            Respond with ONLY valid JSON in this exact format:
+            {"isValid": true, "reason": ""}
+            or
+            {"isValid": false, "reason": "Clear explanation of why the topic was rejected."}
+            """;
+    }
+
+    private static TopicValidationResult ParseTopicValidationResponse(string response)
+    {
+        string json = ExtractJson(response, '{', '}');
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+
+        bool isValid = root.TryGetProperty("isValid", out JsonElement validEl)
+            && validEl.ValueKind is JsonValueKind.True or JsonValueKind.False
+            && validEl.GetBoolean();
+
+        string? reason = root.TryGetProperty("reason", out JsonElement reasonEl) && reasonEl.ValueKind == JsonValueKind.String
+            ? reasonEl.GetString()
+            : null;
+
+        return new TopicValidationResult
+        {
+            IsValid = isValid,
+            RejectionReason = string.IsNullOrWhiteSpace(reason) ? null : reason
+        };
     }
 
     /// <summary>

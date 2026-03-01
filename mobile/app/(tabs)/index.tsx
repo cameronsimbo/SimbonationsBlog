@@ -330,6 +330,12 @@ export default function DashboardScreen() {
                 )}
               />
             )}
+            <TouchableOpacity
+              style={styles.createTopicButton}
+              onPress={() => { setShowEnroll(false); router.push("/create-topic"); }}
+            >
+              <Text style={styles.createTopicButtonText}>+ Create Your Own Topic</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -548,5 +554,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: "600",
     overflow: "hidden",
+  },
+  createTopicButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  createTopicButtonText: {
+    color: Colors.primary,
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

@@ -113,7 +113,7 @@ export const createTopic = (data: {
   description: string;
   subjectDomain: number;
   difficultyLevel: number;
-}) => api.post("/Topics", data);
+}) => api.post("/Topics", data, { timeout: AI_TIMEOUT });
 
 // Lessons
 export const getLessons = (unitId: string) =>
