@@ -1,5 +1,7 @@
+using Learn.Application.Common.Interfaces;
 using Learn.Application.Profile.GetProfile;
 using Learn.Application.Profile.GetProfile.Models;
+using Learn.Application.Profile.TestAI;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,5 +24,13 @@ public class ProfileController : ControllerBase
     {
         UserProfileVm profile = await _mediator.Send(new GetProfileQuery(), cancellationToken);
         return Ok(profile);
+    }
+
+    [HttpPost("test-ai")]
+    public async Task<ActionResult<TestConnectionResult>> TestAI(
+        [FromBody] TestAICommand command, CancellationToken cancellationToken)
+    {
+        TestConnectionResult result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
     }
 }

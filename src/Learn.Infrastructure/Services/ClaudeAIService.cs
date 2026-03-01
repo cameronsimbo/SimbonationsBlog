@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Learn.Application.Common.Interfaces;
 using Learn.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -21,6 +22,7 @@ public class ClaudeAIService : IAIEvaluationService
     private readonly HttpClient _httpClient;
     private readonly ClaudeOptions _options;
     private readonly OllamaService _ollamaFallback;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ClaudeAIService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -33,16 +35,22 @@ public class ClaudeAIService : IAIEvaluationService
         HttpClient httpClient,
         IOptions<ClaudeOptions> options,
         OllamaService ollamaFallback,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<ClaudeAIService> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _ollamaFallback = ollamaFallback;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
     public async Task<AIEvaluationResult> EvaluateAnswerAsync(EvaluationRequest request, CancellationToken cancellationToken = default)
     {
+        string? preferredModel = _httpContextAccessor.HttpContext?.Request.Headers["X-Preferred-Model"].ToString();
+        if (string.Equals(preferredModel, "ollama", StringComparison.OrdinalIgnoreCase))
+            return await _ollamaFallback.EvaluateAnswerAsync(request, cancellationToken);
+
         try
         {
             string prompt = BuildEvaluationPrompt(request);
@@ -60,6 +68,10 @@ public class ClaudeAIService : IAIEvaluationService
 
     public async Task<List<GeneratedExercise>> GenerateExercisesAsync(ExerciseGenerationRequest request, CancellationToken cancellationToken = default)
     {
+        string? preferredModel = _httpContextAccessor.HttpContext?.Request.Headers["X-Preferred-Model"].ToString();
+        if (string.Equals(preferredModel, "ollama", StringComparison.OrdinalIgnoreCase))
+            return await _ollamaFallback.GenerateExercisesAsync(request, cancellationToken);
+
         try
         {
             string prompt = BuildGenerationPrompt(request);
@@ -75,7 +87,10 @@ public class ClaudeAIService : IAIEvaluationService
 
     private async Task<string> CallClaudeAsync(string prompt, int maxTokens, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        string? headerKey = _httpContextAccessor.HttpContext?.Request.Headers["X-Claude-Api-Key"].ToString();
+        string effectiveKey = string.IsNullOrWhiteSpace(headerKey) ? _options.ApiKey : headerKey;
+
+        if (string.IsNullOrWhiteSpace(effectiveKey))
             throw new InvalidOperationException("Claude API key is not configured (ANTHROPIC_API_KEY env var missing)");
 
         var requestBody = new
@@ -93,7 +108,7 @@ public class ClaudeAIService : IAIEvaluationService
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/messages");
         request.Content = content;
-        request.Headers.Add("x-api-key", _options.ApiKey);
+        request.Headers.Add("x-api-key", effectiveKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
         // Dedicated timeout — not linked to the request token so client disconnects don't abort mid-call

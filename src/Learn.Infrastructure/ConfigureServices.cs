@@ -54,6 +54,7 @@ public static class ConfigureServices
             client.Timeout = TimeSpan.FromSeconds(timeout);
         });
 
+        services.AddScoped<IAIConnectionTester, AIConnectionTester>();
         services.AddScoped<ISpeechService, SpeechService>();
         services.AddScoped<ITopicCatalogSeeder, TopicCatalogSeeder>();
 

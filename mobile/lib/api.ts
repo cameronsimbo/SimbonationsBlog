@@ -61,6 +61,37 @@ export async function clearToken(): Promise<void> {
   setAuthToken(null);
 }
 
+// AI Preferences
+const AI_PREFS_KEY = "aiPreferences";
+
+export type AIModel = "claude" | "ollama";
+
+export function applyAIPreferences(model: AIModel, apiKey?: string) {
+  api.defaults.headers.common["X-Preferred-Model"] = model;
+  if (apiKey) api.defaults.headers.common["X-Claude-Api-Key"] = apiKey;
+  else delete api.defaults.headers.common["X-Claude-Api-Key"];
+}
+
+export async function loadStoredAIPreferences(): Promise<{ model: AIModel; apiKey?: string } | null> {
+  try {
+    const raw = await AsyncStorage.getItem(AI_PREFS_KEY);
+    if (!raw) return null;
+    const prefs = JSON.parse(raw);
+    applyAIPreferences(prefs.model, prefs.apiKey);
+    return prefs;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveAIPreferences(model: AIModel, apiKey?: string): Promise<void> {
+  await AsyncStorage.setItem(AI_PREFS_KEY, JSON.stringify({ model, apiKey }));
+  applyAIPreferences(model, apiKey);
+}
+
+export const testAIConnection = (model: AIModel, apiKey?: string) =>
+  api.post("/Profile/test-ai", { model, apiKey }, { timeout: 30_000 });
+
 // Auth
 export const register = (email: string, password: string, displayName?: string) =>
   api.post("/Auth/register", { email, password, displayName });

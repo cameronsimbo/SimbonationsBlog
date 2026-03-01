@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { loadStoredToken, storeToken, clearToken, setOnUnauthorized } from "./api";
+import { loadStoredToken, storeToken, clearToken, setOnUnauthorized, loadStoredAIPreferences } from "./api";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -35,6 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .then((t) => setToken(t))
       .finally(() => setIsLoading(false));
+
+    loadStoredAIPreferences().catch(() => {});
   }, []);
 
   const signIn = async (newToken: string) => {
