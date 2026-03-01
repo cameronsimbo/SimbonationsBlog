@@ -29,7 +29,8 @@ public class ExerciseAttempt : CreatedEntity<ExerciseAttempt>
         int timeTakenSeconds,
         bool isAudioSubmission = false,
         string? suggestedCorrection = null,
-        string? detailedBreakdown = null)
+        string? detailedBreakdown = null,
+        bool isReview = false)
     {
         return new ExerciseAttempt
         {
@@ -43,7 +44,8 @@ public class ExerciseAttempt : CreatedEntity<ExerciseAttempt>
             TimeTakenSeconds = timeTakenSeconds,
             IsAudioSubmission = isAudioSubmission,
             SuggestedCorrection = suggestedCorrection,
-            DetailedBreakdown = detailedBreakdown
+            DetailedBreakdown = detailedBreakdown,
+            IsReview = isReview
         };
     }
 }

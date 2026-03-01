@@ -119,6 +119,7 @@ export default function SessionScreen() {
         exerciseId: exercise.exerciseId,
         userAnswer: answer.trim(),
         timeTakenSeconds: timeTaken,
+        isReview: exercise.isReview,
       });
 
       const result: ExerciseResult = {

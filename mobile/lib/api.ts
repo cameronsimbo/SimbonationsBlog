@@ -127,6 +127,7 @@ export const submitAnswer = (data: {
   exerciseId: string;
   userAnswer: string;
   timeTakenSeconds: number;
+  isReview?: boolean;
 }) => api.post("/Exercises/submit", data, { timeout: AI_TIMEOUT });
 
 export const generateExercises = (lessonId: string, count: number = 5) =>

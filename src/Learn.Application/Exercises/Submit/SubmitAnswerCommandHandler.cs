@@ -91,7 +91,8 @@ public class SubmitAnswerCommandHandler : IRequestHandler<SubmitAnswerCommand, E
             command.TimeTakenSeconds,
             isAudioSubmission: false,
             suggestedCorrection: aiResult.SuggestedCorrection,
-            detailedBreakdown: aiResult.DetailedBreakdown);
+            detailedBreakdown: aiResult.DetailedBreakdown,
+            isReview: command.IsReview);
 
         attempt.XPEarned = xpEarned;
         _db.ExerciseAttempts.Add(attempt);
